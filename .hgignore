@@ -1,0 +1,12 @@
+syntax: glob
+*.swp
+*.o
+*.pyc
+*.pyo
+*.pyd
+*.cover
+*~
+__pycache__
+.coverage
+coverage/
+htmlcov/
