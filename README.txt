@@ -1,4 +1,4 @@
-iterwalk is a simple set of iterator tools intended to make it
+walkdir is a simple set of iterator tools intended to make it
 easy to manipulate and filter the output of os.walk() in a way
 that is also easily applicable to any source iterator that
 produces data in the same format.

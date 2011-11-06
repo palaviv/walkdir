@@ -1,11 +1,11 @@
 from distutils.core import setup
 
 setup(
-    name='iterwalk',
+    name='walkdir',
     version='0.1',
-    py_modules=['iterwalk'],
+    py_modules=['walkdir'],
     license='Simplified BSD License',
-    description='Iterator tools to manipulate and filter os.walk() output',
+    description='Tools to manipulate and filter os.walk() style iteration',
     long_description=open('README.txt').read(),
     author='Nick Coghlan',
     author_email='ncoghlan@gmail.com'

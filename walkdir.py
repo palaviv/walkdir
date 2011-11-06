@@ -1,4 +1,4 @@
-"""iterwalk - iterative tools for working with os.walk() and similar interfaces
+"""walkdir - iterative tools for working with os.walk() and similar interfaces
 """
 import fnmatch
 import os.path
