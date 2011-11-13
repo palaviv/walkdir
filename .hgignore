@@ -1,5 +1,6 @@
 syntax: glob
 *.swp
+*.kate-swp
 *.o
 *.pyc
 *.pyo
@@ -11,3 +12,5 @@ __pycache__
 coverage/
 htmlcov/
 _build/
+dist/
+MANIFEST
