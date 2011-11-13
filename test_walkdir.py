@@ -229,7 +229,6 @@ class FilteredWalkTestCase(_BaseWalkTestCase):
             self.assertEqual(files, ['file1.txt'])
 
 # TODO: Create filesystem in temporary directory, add tests for 'handle_symlink_loops'
-# TODO: Test the 'sep' arguments to 'limit_depth' and 'handle_symlink_loops'
 
 if __name__ == "__main__":
     unittest.main()
