@@ -8,5 +8,6 @@ setup(
     description='Tools to manipulate and filter os.walk() style iteration',
     long_description=open('README.txt').read(),
     author='Nick Coghlan',
-    author_email='ncoghlan@gmail.com'
+    author_email='ncoghlan@gmail.com',
+    url='http://walkdir.readthedocs.org'
 )
