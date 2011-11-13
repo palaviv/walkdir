@@ -161,14 +161,14 @@ class NoFilesystemTestCase(unittest.TestCase):
         for dirname, subdirs, files in walk_iter:
             self.assertEqual(files, ['file1.txt'])
 
-    def test_walk_all(self):
-        self.assertEqual(all_paths, list(walkdir.walk_all(fake_walk())))
+    def test_iter_paths(self):
+        self.assertEqual(all_paths, list(walkdir.iter_paths(fake_walk())))
 
-    def test_walk_dirs(self):
-        self.assertEqual(all_dirs, list(walkdir.walk_dirs(fake_walk())))
+    def test_iter_dir_paths(self):
+        self.assertEqual(all_dirs, list(walkdir.iter_dir_paths(fake_walk())))
 
-    def test_walk_files(self):
-        self.assertEqual(all_files, list(walkdir.walk_files(fake_walk())))
+    def test_iter_file_paths(self):
+        self.assertEqual(all_files, list(walkdir.iter_file_paths(fake_walk())))
 
 # TODO: Create filesystem in temporary directory, add tests for the symlink loop detector
 

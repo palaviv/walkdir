@@ -154,18 +154,18 @@ def handle_symlink_loops(walk_iter, onloop=None):
 
 # Iterators that flatten the output into a series of paths
 
-def walk_dirs(walk_iter):
+def iter_dir_paths(walk_iter):
     """Iterate over just the directory names visited by the underlying walk"""
     for dirpath, subdirs, files in walk_iter:
         yield dirpath
 
-def walk_files(walk_iter):
+def iter_file_paths(walk_iter):
     """Iterate over the files in directories visited by the underlying walk"""
     for dirpath, subdirs, files in walk_iter:
         for fname in files:
             yield os.path.join(dirpath, fname)
 
-def walk_all(walk_iter):
+def iter_paths(walk_iter):
     """Iterate over both files and directories visited by the underlying walk"""
     for dirpath, subdirs, files in walk_iter:
         yield dirpath
