@@ -53,6 +53,16 @@ an :mod:`itertools` style iterator pipeline model:
 .. autofunction:: handle_symlink_loops
 
 
+Development and Support
+----------------------
+
+WalkDir is developed and maintained on BitBucket_. Problems and suggested
+improvements can be posted to the `issue tracker`_.
+
+.. _BitBucket: https://bitbucket.org/ncoghlan/walkdir/overview
+.. _issue tracker: https://bitbucket.org/ncoghlan/walkdir/issues?status=new&status=open
+
+
 Indices and tables
 ==================
 
