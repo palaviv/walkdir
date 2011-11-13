@@ -121,23 +121,44 @@ class NoFilesystemTestCase(unittest.TestCase):
         self.assertEqual(depth_0_tree, list(walkdir.limit_depth(fake_walk(), 0)))
         self.assertEqual(depth_1_tree, list(walkdir.limit_depth(fake_walk(), 1)))
         
+    def test_include_dirs(self):
+        self.assertEqual(depth_0_tree, list(walkdir.include_dirs(fake_walk())))
+        self.assertEqual(expected_tree, list(walkdir.include_dirs(fake_walk(), '*')))
+        self.assertEqual(expected_tree, list(walkdir.include_dirs(fake_walk(), 'sub*', 'other')))
+
+    def test_exclude_dirs(self):
+        self.assertEqual(expected_tree, list(walkdir.exclude_dirs(fake_walk())))
+        self.assertEqual(depth_0_tree, list(walkdir.exclude_dirs(fake_walk(), '*')))
+
     def test_filter_dirs(self):
-        self.assertEqual(depth_0_tree, list(walkdir.filter_dirs(fake_walk())))
-        self.assertEqual(expected_tree, list(walkdir.filter_dirs(fake_walk(), '*')))
-        self.assertEqual(depth_0_tree, list(walkdir.filter_dirs(fake_walk(), '*', exclude_filters=['*'])))
-        self.assertEqual(dir_filtered_tree, list(walkdir.filter_dirs(fake_walk(), 'sub*', exclude_filters=['*2'])))
-        self.assertEqual(expected_tree, list(walkdir.filter_dirs(fake_walk(), 'sub*', 'other')))
+        walk_iter = walkdir.include_dirs(fake_walk(), 'sub*')
+        walk_iter = walkdir.exclude_dirs(walk_iter, '*2')
+        self.assertEqual(dir_filtered_tree, list(walk_iter))
+
+    def test_include_files(self):
+        for dirname, subdirs, files in walkdir.include_files(fake_walk()):
+            self.assertEqual(files, [])
+        for dirname, subdirs, files in walkdir.include_files(fake_walk(), '*'):
+            self.assertEqual(files, expected_files)
+        for dirname, subdirs, files in walkdir.include_files(fake_walk(), 'file*', 'other*'):
+            self.assertEqual(files, expected_files)
+        for dirname, subdirs, files in walkdir.include_files(fake_walk(), 'file*'):
+            self.assertEqual(files, ['file1.txt', 'file2.txt'])
+
+    def test_exclude_files(self):
+        for dirname, subdirs, files in walkdir.exclude_files(fake_walk()):
+            self.assertEqual(files, expected_files)
+        for dirname, subdirs, files in walkdir.exclude_files(fake_walk(), '*'):
+            self.assertEqual(files, [])
+        for dirname, subdirs, files in walkdir.exclude_files(fake_walk(), 'file*', 'other*'):
+            self.assertEqual(files, [])
+        for dirname, subdirs, files in walkdir.exclude_files(fake_walk(), 'file*'):
+            self.assertEqual(files, ['other.txt'])
 
     def test_filter_files(self):
-        for dirname, subdirs, files in walkdir.filter_files(fake_walk()):
-            self.assertEqual(files, [])
-        for dirname, subdirs, files in walkdir.filter_files(fake_walk(), '*'):
-            self.assertEqual(files, expected_files)
-        for dirname, subdirs, files in walkdir.filter_files(fake_walk(), 'file*', 'other*'):
-            self.assertEqual(files, expected_files)
-        for dirname, subdirs, files in walkdir.filter_files(fake_walk(), 'file*'):
-            self.assertEqual(files, ['file1.txt', 'file2.txt'])
-        for dirname, subdirs, files in walkdir.filter_files(fake_walk(), 'file*', exclude_filters=['*2*']):
+        walk_iter = walkdir.include_files(fake_walk(), 'file*')
+        walk_iter = walkdir.exclude_files(walk_iter, '*2*')
+        for dirname, subdirs, files in walk_iter:
             self.assertEqual(files, ['file1.txt'])
 
     def test_walk_all(self):

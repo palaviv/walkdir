@@ -4,65 +4,91 @@ import fnmatch
 import os.path
 import sys
 
-# Filtering and other manipulations that still produce os.walk() style output
+# Filtering for inclusion
 
-def _make_fnmatch_filter(include_filters, exclude_filters):
-    """Create a filtering function from inclusion and exclusion patterns"""
+def _make_include_filter(patterns):
+    """Create a filtering function from a collection of inclusion patterns"""
     # Trivial case: exclude everything
-    if not include_filters:
+    if not patterns:
         def _filter(names):
             return names[0:0]
         return _filter
     # Use fnmatch.filter if it's applicable
-    if len(include_filters) == 1 and not exclude_filters:
+    if len(patterns) == 1:
         def _filter(names):
-            return fnmatch.filter(names, include_filters[0])
+            return fnmatch.filter(names, patterns[0])
         return _filter
     # Handle the general case for inclusion
     def _should_include(name):
         return any(fnmatch.fnmatch(name, pattern)
-                        for pattern in include_filters)
-    # No negative filters
-    if not exclude_filters:
-        def _filter(names):
-            for name in names:
-                if _should_include(name):
-                    yield name
-        return _filter
-    # Handle negative filters
-    def _should_exclude(name):
-        return any(fnmatch.fnmatch(name, pattern)
-                        for pattern in exclude_filters)
+                        for pattern in patterns)
     def _filter(names):
         for name in names:
-            if _should_include(name) and not _should_exclude(name):
+            if _should_include(name):
                 yield name
     return _filter
-        
     
-    
-def filter_dirs(walk_iter, *include_filters, exclude_filters=()):
-    """Use fnmatch() pattern matching to select directories to recurse into
+def include_dirs(walk_iter, *include_filters):
+    """Use fnmatch() pattern matching to select directories of interest
     
        Inclusion filters are passed directly as arguments
-       Keyword only argument "exclude_filters"
     """
-    # We prefer to use fnmatch.filter if we can
-    filter_subdirs = _make_fnmatch_filter(include_filters, exclude_filters)
+    filter_subdirs = _make_include_filter(include_filters)
     for dirpath, subdirs, files in walk_iter:
         subdirs[:] = filter_subdirs(subdirs)
         yield dirpath, subdirs, files
 
-def filter_files(walk_iter, *include_filters, exclude_filters=()):
+def include_files(walk_iter, *include_filters):
     """Use fnmatch() pattern matching to select files of interest
     
        Inclusion filters are passed directly as arguments
-       Keyword only argument "exclude_filters"
     """
-    filter_files = _make_fnmatch_filter(include_filters, exclude_filters)
+    filter_files = _make_include_filter(include_filters)
     for dirpath, subdirs, files in walk_iter:
         files[:] = filter_files(files)
         yield dirpath, subdirs, files
+
+# Filtering for exclusion
+
+def _make_exclude_filter(patterns):
+    """Create a filtering function from a collection of exclusion patterns"""
+    # Trivial case: include everything
+    if not patterns:
+        def _filter(names):
+            return names
+        return _filter
+    # Handle the general case for exclusion
+    def _should_exclude(name):
+        return any(fnmatch.fnmatch(name, pattern)
+                        for pattern in patterns)
+    def _filter(names):
+        for name in names:
+            if not _should_exclude(name):
+                yield name
+    return _filter
+
+def exclude_dirs(walk_iter, *exclude_filters):
+    """Use fnmatch() pattern matching to skip irrelevant directories
+    
+       Exclusion filters are passed directly as arguments
+    """
+    filter_subdirs = _make_exclude_filter(exclude_filters)
+    for dirpath, subdirs, files in walk_iter:
+        subdirs[:] = filter_subdirs(subdirs)
+        yield dirpath, subdirs, files
+
+def exclude_files(walk_iter, *exclude_filters):
+    """Use fnmatch() pattern matching to skip irrelevant files
+    
+       Exclusion filters are passed directly as arguments
+    """
+    filter_files = _make_exclude_filter(exclude_filters)
+    for dirpath, subdirs, files in walk_iter:
+        files[:] = filter_files(files)
+        yield dirpath, subdirs, files
+
+
+# Depth limiting
 
 def limit_depth(walk_iter, depth):
     """Limit the depth of recursion into subdirectories.
@@ -84,6 +110,8 @@ def limit_depth(walk_iter, depth):
         current_depth = dirpath.count(sep) - initial_depth
         if current_depth >= depth:
             subdirs[:] = []
+
+# Symlink loop handling
 
 def handle_symlink_loops(walk_iter, onloop=None):
     """Handle symlink loops when following symlinks during a walk
