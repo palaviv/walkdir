@@ -53,8 +53,29 @@ an :mod:`itertools` style iterator pipeline model:
 .. autofunction:: handle_symlink_loops
 
 
+Obtaining the Module
+====================
+
+This module can be installed directly from the `Python Package Index`_ with
+pip_::
+
+    pip install walkdir
+
+Alternatively, you can download and unpack it manually from the `walkdir
+PyPI page`_.
+
+There are no operating system or distribution specific versions of this
+module - it is a pure Python module that should work on all platforms.
+
+Supported Python versions are 2.7 and 3.2+.
+
+.. _Python Package Index: http://pypi.python.org
+.. _pip: http://www.pip-installer.org
+.. _walkdir pypi page: http://pypi.python.org/pypi/walkdir
+
+
 Development and Support
-----------------------
+-----------------------
 
 WalkDir is developed and maintained on BitBucket_. Problems and suggested
 improvements can be posted to the `issue tracker`_.
