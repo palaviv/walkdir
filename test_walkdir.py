@@ -1,8 +1,11 @@
 #!/usr/bin/env python3
 """test_walkdir - unittests for the walkdir module"""
-import walkdir
 import unittest
 import os.path
+
+from walkdir import (include_dirs, exclude_dirs, include_files, exclude_files,
+                     limit_depth, handle_symlink_loops, filtered_walk,
+                     iter_paths, iter_dir_paths, iter_file_paths)
 
 expected_files = "file1.txt file2.txt other.txt".split()
 
@@ -110,67 +113,123 @@ all_paths = [
 all_dirs = [d for d in all_paths if not d.endswith('.txt')]
 all_files = [f for f in all_paths if f.endswith('.txt')]
 
+class _BaseWalkTestCase(unittest.TestCase):
+    def assertWalkEqual(self, expected, walk_iter):
+        return self.assertEqual(expected, list(walk_iter))
 
-class NoFilesystemTestCase(unittest.TestCase):
+class NoFilesystemTestCase(_BaseWalkTestCase):
     
     # Sanity check on the test data generator
     def test_fake_walk(self):
-        self.assertEqual(expected_tree, list(fake_walk()))
+        self.assertWalkEqual(expected_tree, fake_walk())
 
     def test_limit_depth(self):
-        self.assertEqual(depth_0_tree, list(walkdir.limit_depth(fake_walk(), 0)))
-        self.assertEqual(depth_1_tree, list(walkdir.limit_depth(fake_walk(), 1)))
+        self.assertWalkEqual(depth_0_tree, limit_depth(fake_walk(), 0))
+        self.assertWalkEqual(depth_1_tree, limit_depth(fake_walk(), 1))
         
     def test_include_dirs(self):
-        self.assertEqual(depth_0_tree, list(walkdir.include_dirs(fake_walk())))
-        self.assertEqual(expected_tree, list(walkdir.include_dirs(fake_walk(), '*')))
-        self.assertEqual(expected_tree, list(walkdir.include_dirs(fake_walk(), 'sub*', 'other')))
+        self.assertWalkEqual(depth_0_tree, include_dirs(fake_walk()))
+        self.assertWalkEqual(expected_tree, include_dirs(fake_walk(), '*'))
+        self.assertWalkEqual(expected_tree, include_dirs(fake_walk(), 'sub*', 'other'))
 
     def test_exclude_dirs(self):
-        self.assertEqual(expected_tree, list(walkdir.exclude_dirs(fake_walk())))
-        self.assertEqual(depth_0_tree, list(walkdir.exclude_dirs(fake_walk(), '*')))
+        self.assertWalkEqual(expected_tree, exclude_dirs(fake_walk()))
+        self.assertWalkEqual(depth_0_tree, exclude_dirs(fake_walk(), '*'))
 
     def test_filter_dirs(self):
-        walk_iter = walkdir.include_dirs(fake_walk(), 'sub*')
-        walk_iter = walkdir.exclude_dirs(walk_iter, '*2')
-        self.assertEqual(dir_filtered_tree, list(walk_iter))
+        walk_iter = include_dirs(fake_walk(), 'sub*')
+        walk_iter = exclude_dirs(walk_iter, '*2')
+        self.assertWalkEqual(dir_filtered_tree, walk_iter)
 
     def test_include_files(self):
-        for dirname, subdirs, files in walkdir.include_files(fake_walk()):
+        for dirname, subdirs, files in include_files(fake_walk()):
             self.assertEqual(files, [])
-        for dirname, subdirs, files in walkdir.include_files(fake_walk(), '*'):
+        for dirname, subdirs, files in include_files(fake_walk(), '*'):
             self.assertEqual(files, expected_files)
-        for dirname, subdirs, files in walkdir.include_files(fake_walk(), 'file*', 'other*'):
+        for dirname, subdirs, files in include_files(fake_walk(), 'file*', 'other*'):
             self.assertEqual(files, expected_files)
-        for dirname, subdirs, files in walkdir.include_files(fake_walk(), 'file*'):
+        for dirname, subdirs, files in include_files(fake_walk(), 'file*'):
             self.assertEqual(files, ['file1.txt', 'file2.txt'])
 
     def test_exclude_files(self):
-        for dirname, subdirs, files in walkdir.exclude_files(fake_walk()):
+        for dirname, subdirs, files in exclude_files(fake_walk()):
             self.assertEqual(files, expected_files)
-        for dirname, subdirs, files in walkdir.exclude_files(fake_walk(), '*'):
+        for dirname, subdirs, files in exclude_files(fake_walk(), '*'):
             self.assertEqual(files, [])
-        for dirname, subdirs, files in walkdir.exclude_files(fake_walk(), 'file*', 'other*'):
+        for dirname, subdirs, files in exclude_files(fake_walk(), 'file*', 'other*'):
             self.assertEqual(files, [])
-        for dirname, subdirs, files in walkdir.exclude_files(fake_walk(), 'file*'):
+        for dirname, subdirs, files in exclude_files(fake_walk(), 'file*'):
             self.assertEqual(files, ['other.txt'])
 
     def test_filter_files(self):
-        walk_iter = walkdir.include_files(fake_walk(), 'file*')
-        walk_iter = walkdir.exclude_files(walk_iter, '*2*')
+        walk_iter = include_files(fake_walk(), 'file*')
+        walk_iter = exclude_files(walk_iter, '*2*')
         for dirname, subdirs, files in walk_iter:
             self.assertEqual(files, ['file1.txt'])
 
     def test_iter_paths(self):
-        self.assertEqual(all_paths, list(walkdir.iter_paths(fake_walk())))
+        self.assertWalkEqual(all_paths, iter_paths(fake_walk()))
 
     def test_iter_dir_paths(self):
-        self.assertEqual(all_dirs, list(walkdir.iter_dir_paths(fake_walk())))
+        self.assertWalkEqual(all_dirs, iter_dir_paths(fake_walk()))
 
     def test_iter_file_paths(self):
-        self.assertEqual(all_files, list(walkdir.iter_file_paths(fake_walk())))
+        self.assertWalkEqual(all_files, iter_file_paths(fake_walk()))
 
-# TODO: Create filesystem in temporary directory, add tests for the symlink loop detector
+class FilteredWalkTestCase(_BaseWalkTestCase):
+    # Basically repeat all the standalone cases via the convenience API
+    def fake_walk(self, *args, **kwds):
+        return filtered_walk(fake_walk(), *args, **kwds)
+
+    def test_unfiltered(self):
+        self.assertWalkEqual(expected_tree, filtered_walk(fake_walk()))
+
+    def test_limit_depth(self):
+        self.assertWalkEqual(depth_0_tree, self.fake_walk(depth=0))
+        self.assertWalkEqual(depth_1_tree, self.fake_walk(depth=1))
+        
+    def test_include_dirs(self):
+        self.assertWalkEqual(depth_0_tree, self.fake_walk(included_dirs=()))
+        self.assertWalkEqual(expected_tree, self.fake_walk(included_dirs=['*']))
+        self.assertWalkEqual(expected_tree, self.fake_walk(included_dirs=['sub*', 'other']))
+
+    def test_exclude_dirs(self):
+        self.assertWalkEqual(expected_tree, self.fake_walk(excluded_dirs=()))
+        self.assertWalkEqual(depth_0_tree, self.fake_walk(excluded_dirs=['*']))
+
+    def test_filter_dirs(self):
+        walk_iter = self.fake_walk(included_dirs=['sub*'],
+                                   excluded_dirs=['*2'])
+        self.assertWalkEqual(dir_filtered_tree, walk_iter)
+
+    def test_include_files(self):
+        for dirname, subdirs, files in self.fake_walk(included_files=()):
+            self.assertEqual(files, [])
+        for dirname, subdirs, files in self.fake_walk(included_files=['*']):
+            self.assertEqual(files, expected_files)
+        for dirname, subdirs, files in self.fake_walk(included_files=['file*', 'other*']):
+            self.assertEqual(files, expected_files)
+        for dirname, subdirs, files in self.fake_walk(included_files=['file*']):
+            self.assertEqual(files, ['file1.txt', 'file2.txt'])
+
+    def test_exclude_files(self):
+        for dirname, subdirs, files in self.fake_walk(excluded_files=()):
+            self.assertEqual(files, expected_files)
+        for dirname, subdirs, files in self.fake_walk(excluded_files=['*']):
+            self.assertEqual(files, [])
+        for dirname, subdirs, files in self.fake_walk(excluded_files=['file*', 'other*']):
+            self.assertEqual(files, [])
+        for dirname, subdirs, files in self.fake_walk(excluded_files=['file*']):
+            self.assertEqual(files, ['other.txt'])
+
+    def test_filter_files(self):
+        walk_iter = self.fake_walk(included_files=['file*'],
+                                   excluded_files=['*2*'])
+        for dirname, subdirs, files in walk_iter:
+            self.assertEqual(files, ['file1.txt'])
+
+# TODO: Create filesystem in temporary directory, add tests for 'handle_symlink_loops'
+# TODO: Test the 'sep' arguments to 'limit_depth' and 'handle_symlink_loops'
 
 if __name__ == "__main__":
     unittest.main()
