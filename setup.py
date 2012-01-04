@@ -2,7 +2,7 @@ from distutils.core import setup
 
 setup(
     name='walkdir',
-    version='0.1',
+    version=open('VERSION.txt').read().strip(),
     py_modules=['walkdir'],
     license='Simplified BSD License',
     description='Tools to manipulate and filter os.walk() style iteration',

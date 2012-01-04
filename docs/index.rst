@@ -84,6 +84,9 @@ improvements can be posted to the `issue tracker`_.
 .. _issue tracker: https://bitbucket.org/ncoghlan/walkdir/issues?status=new&status=open
 
 
+.. include:: ../NEWS.rst
+
+
 Indices and tables
 ==================
 
