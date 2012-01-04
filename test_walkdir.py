@@ -128,6 +128,11 @@ class NoFilesystemTestCase(_BaseWalkTestCase):
         self.assertWalkEqual(depth_0_tree, limit_depth(fake_walk(), 0))
         self.assertWalkEqual(depth_1_tree, limit_depth(fake_walk(), 1))
         
+    def test_min_depth(self):
+        self.assertWalkEqual([], limit_depth(fake_walk(), 0, min_depth=1))
+        self.assertWalkEqual(depth_1_tree[1:],
+                             limit_depth(fake_walk(), 1, min_depth=1))
+        
     def test_include_dirs(self):
         self.assertWalkEqual(depth_0_tree, include_dirs(fake_walk()))
         self.assertWalkEqual(expected_tree, include_dirs(fake_walk(), '*'))
@@ -181,6 +186,7 @@ class NoFilesystemTestCase(_BaseWalkTestCase):
         self.assertIs(iter_paths, all_paths)
         self.assertIs(iter_dir_paths, dir_paths)
         self.assertIs(iter_file_paths, file_paths)
+
 
 class FilteredWalkTestCase(_BaseWalkTestCase):
     # Basically repeat all the standalone cases via the convenience API
