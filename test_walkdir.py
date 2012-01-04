@@ -114,6 +114,29 @@ expected_paths = [
 expected_dir_paths = [d for d in expected_paths if not d.endswith('.txt')]
 expected_file_paths = [f for f in expected_paths if f.endswith('.txt')]
 
+depth_0_paths = [
+'root',
+'root/file1.txt',
+'root/file2.txt',
+'root/other.txt',
+]
+
+depth_0_dir_paths = [d for d in depth_0_paths if not d.endswith('.txt')]
+depth_0_file_paths = [f for f in depth_0_paths if f.endswith('.txt')]
+
+filtered_paths = [
+'root',
+'root/file1.txt',
+'root/subdir1',
+'root/subdir1/file1.txt',
+'root/subdir1/subdir1',
+'root/subdir1/subdir1/file1.txt',
+]
+
+filtered_dir_paths = [d for d in filtered_paths if not d.endswith('.txt')]
+filtered_file_paths = [f for f in filtered_paths if f.endswith('.txt')]
+
+
 class _BaseWalkTestCase(unittest.TestCase):
     def assertWalkEqual(self, expected, walk_iter):
         return self.assertEqual(expected, list(walk_iter))
@@ -174,15 +197,6 @@ class NoFilesystemTestCase(_BaseWalkTestCase):
         for dirname, subdirs, files in walk_iter:
             self.assertEqual(files, ['file1.txt'])
 
-    def test_all_paths(self):
-        self.assertWalkEqual(expected_paths, all_paths(fake_walk()))
-
-    def test_dir_paths(self):
-        self.assertWalkEqual(expected_dir_paths, dir_paths(fake_walk()))
-
-    def test_file_paths(self):
-        self.assertWalkEqual(expected_file_paths, file_paths(fake_walk()))
-        
     def test_legacy_names(self):
         self.assertIs(iter_paths, all_paths)
         self.assertIs(iter_dir_paths, dir_paths)
@@ -245,6 +259,38 @@ class FilteredWalkTestCase(_BaseWalkTestCase):
                                    excluded_files=['*2*'])
         for dirname, subdirs, files in walk_iter:
             self.assertEqual(files, ['file1.txt'])
+
+class PathIterationTestCase(_BaseWalkTestCase):
+    def fake_walk(self, *args, **kwds):
+        return filtered_walk(fake_walk(), *args, **kwds)
+
+    def test_all_paths(self):
+        self.assertWalkEqual(expected_paths, all_paths(self.fake_walk()))
+        self.assertWalkEqual(depth_0_paths, all_paths(self.fake_walk(depth=0)))
+        walk_iter = self.fake_walk(included_files=['file*'],
+                                   excluded_files=['*2*'],
+                                   included_dirs=['sub*'],
+                                   excluded_dirs=['*2'])
+        self.assertWalkEqual(filtered_paths, all_paths(walk_iter))
+
+    def test_dir_paths(self):
+        self.assertWalkEqual(expected_dir_paths, dir_paths(self.fake_walk()))
+        self.assertWalkEqual(depth_0_dir_paths, dir_paths(self.fake_walk(depth=0)))
+        walk_iter = self.fake_walk(included_files=['file*'],
+                                   excluded_files=['*2*'],
+                                   included_dirs=['sub*'],
+                                   excluded_dirs=['*2'])
+        self.assertWalkEqual(filtered_dir_paths, dir_paths(walk_iter))
+
+    def test_file_paths(self):
+        self.assertWalkEqual(expected_file_paths, file_paths(self.fake_walk()))
+        self.assertWalkEqual(depth_0_file_paths, file_paths(self.fake_walk(depth=0)))
+        walk_iter = self.fake_walk(included_files=['file*'],
+                                   excluded_files=['*2*'],
+                                   included_dirs=['sub*'],
+                                   excluded_dirs=['*2'])
+        self.assertWalkEqual(filtered_file_paths, file_paths(walk_iter))
+        
 
 # TODO: Create filesystem in temporary directory, add tests for 'handle_symlink_loops'
 
