@@ -99,10 +99,15 @@ def exclude_files(walk_iter, *exclude_filters):
 def limit_depth(walk_iter, depth):
     """Limit the depth of recursion into subdirectories.
     
-       A depth of 0 limits the walk to the top level directory
+    A *depth* of 0 limits the walk to the top level directory, a *depth* of 1
+    include subdirectories, etc.
+
+    Path depth is calculated by counting directory separators, using the
+    depth of the first path produced by the underlying iterator as a
+    reference point.
     """
     if depth < 0:
-        msg = "Depth limit greater than 0 ({!r} provided)"
+        msg = "Depth limit less than 0 ({!r} provided)"
         raise ValueError(msg.format(depth))
     sep=os.sep
     for top, subdirs, files in walk_iter:
@@ -112,10 +117,37 @@ def limit_depth(walk_iter, depth):
             subdirs[:] = []
         break
     for dirpath, subdirs, files in walk_iter:
-        yield dirpath, subdirs, files
         current_depth = dirpath.count(sep) - initial_depth
+        yield dirpath, subdirs, files
         if current_depth >= depth:
             subdirs[:] = []
+
+def min_depth(walk_iter, depth):
+    """Only process subdirectories beyond a minimum depth
+    
+    A *depth* of 1 omits the top level directory, a *depth* of 2
+    starts with subdirectories 2 levels down, etc.
+
+    Path depth is calculated by counting directory separators, using the
+    depth of the first path produced by the underlying iterator as a
+    reference point.
+    
+    NOTE: Since this filter *doesn't yield* higher level directories, any
+    subsequent directory filtering that relies on updating the subdirectory
+    list will have no effect at the minimum depth. Accordingly, this filter
+    should only be applied *after* any directory filtering operations.
+    """
+    if depth < 1:
+        msg = "Minimium depth less than 1 ({!r} provided)"
+        raise ValueError(msg.format(depth))
+    sep=os.sep
+    for top, subdirs, files in walk_iter:
+        initial_depth = top.count(sep)
+        break
+    for dirpath, subdirs, files in walk_iter:
+        current_depth = dirpath.count(sep) - initial_depth
+        if current_depth >= depth:
+            yield dirpath, subdirs, files
 
 # Symlink loop handling
 
@@ -162,7 +194,7 @@ def handle_symlink_loops(walk_iter, onloop=None):
 
 def filtered_walk(top, included_files=None, included_dirs=None,
                        excluded_files=None, excluded_dirs=None,
-                       depth=None, followlinks=False):
+                       depth=None, followlinks=False, min_depth=None):
     """This is a wrapper around ``os.walk()``, with these additional features:
         - *top* may be either a string (which will be passed to ``os.walk()``)
           or any iterable that produces ``path, subdirs, files`` triples
@@ -181,6 +213,10 @@ def filtered_walk(top, included_files=None, included_dirs=None,
        *depth* must be at least zero and indicates how far to descend into the
        directory hierarchy. A depth of zero is useful to get separate filtered
        subdirectory and file listings for *top*.
+       
+       Setting *min_depth* allows directories higher in the tree to be
+       excluded from the walk (e.g. a *min_depth* of 1 excludes *top*, but
+       any subdirectories will still be processed)
 
        *followlinks* enables symbolic loop detection and is also passed to
        ``os.walk()`` when top is a string
@@ -189,7 +225,7 @@ def filtered_walk(top, included_files=None, included_dirs=None,
         walk_iter = os.walk(top, followlinks=followlinks)
     else:
         walk_iter = top
-    # Depth filtering first, since it can cut great swathes from the tree
+    # Depth limiting first, since it can cut great swathes from the tree
     if depth is not None:
         walk_iter = limit_depth(walk_iter, depth)
     # Next we do our path based filtering that can skip directories
@@ -200,6 +236,10 @@ def filtered_walk(top, included_files=None, included_dirs=None,
     # And then we check the filesystem for symlink loops
     if followlinks:
         walk_iter = handle_symlink_loops(walk_iter)
+    # Now that all other directory filtering has been handled, we can apply
+    # the minimum depth check
+    if min_depth is not None:
+        walk_iter = globals()["min_depth"](walk_iter, min_depth)
     # Finally, apply the file filters that can't alter the shape of the tree
     if included_files is not None:
         walk_iter = include_files(walk_iter, *included_files)
@@ -211,21 +251,25 @@ def filtered_walk(top, included_files=None, included_dirs=None,
 
 # Iterators that flatten the output into a series of paths
 
-def iter_dir_paths(walk_iter):
+def dir_paths(walk_iter):
     """Iterate over just the directory names visited by the underlying walk"""
     for dirpath, subdirs, files in walk_iter:
         yield dirpath
 
-def iter_file_paths(walk_iter):
+def file_paths(walk_iter):
     """Iterate over the files in directories visited by the underlying walk"""
     for dirpath, subdirs, files in walk_iter:
         for fname in files:
             yield os.path.join(dirpath, fname)
 
-def iter_paths(walk_iter):
+def all_paths(walk_iter):
     """Iterate over both files and directories visited by the underlying walk"""
     for dirpath, subdirs, files in walk_iter:
         yield dirpath
         for fname in files:
             yield os.path.join(dirpath, fname)
-    
+
+# Legacy API
+iter_dir_paths = dir_paths
+iter_file_paths = file_paths
+iter_paths = all_paths

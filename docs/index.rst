@@ -23,11 +23,11 @@ Path Iteration
 
 Three iterators are provided for iteration over filesystem paths:
 
-.. autofunction:: iter_paths
+.. autofunction:: all_paths
 
-.. autofunction:: iter_dir_paths
+.. autofunction:: dir_paths
 
-.. autofunction:: iter_file_paths
+.. autofunction:: file_paths
 
 
 Directory Walking
@@ -50,7 +50,49 @@ an :mod:`itertools` style iterator pipeline model:
 
 .. autofunction:: limit_depth
 
+.. autofunction:: min_depth
+
 .. autofunction:: handle_symlink_loops
+
+
+Examples
+========
+
+Here are some simple examples of the module being used to explore the contents
+of its own source tree::
+
+    >>> from walkdir import filtered_walk, dir_paths, all_paths, file_paths
+    >>> files = file_paths(filtered_walk('.', depth=0,
+    ...                    included_files=['*.py', '*.txt', '*.rst']))
+    >>> print '\n'.join(files)
+    ./setup.py
+    ./walkdir.py
+    ./NEWS.rst
+    ./test_walkdir.py
+    ./LICENSE.txt
+    ./VERSION.txt
+    ./README.txt
+    >>> dirs = dir_paths(filtered_walk('.', depth=1, min_depth=1,
+    ...                  excluded_dirs=['__pycache__', '.hg']))
+    >>> print '\n'.join(dirs)
+    ./docs
+    ./dist
+    >>> paths = all_paths(filtered_walk('.', depth=1,
+    ...                   included_files=['*.py', '*.txt', '*.rst'],
+    ...                   excluded_dirs=['__pycache__', '.hg']))))
+    >>> print '\n'.join(paths)
+    .
+    ./setup.py
+    ./walkdir.py
+    ./NEWS.rst
+    ./test_walkdir.py
+    ./LICENSE.txt
+    ./VERSION.txt
+    ./README.txt
+    ./docs
+    ./docs/index.rst
+    ./docs/conf.py
+    ./dist
 
 
 Obtaining the Module
@@ -82,6 +124,9 @@ improvements can be posted to the `issue tracker`_.
 
 .. _BitBucket: https://bitbucket.org/ncoghlan/walkdir/overview
 .. _issue tracker: https://bitbucket.org/ncoghlan/walkdir/issues?status=new&status=open
+
+
+.. include:: ../NEWS.rst
 
 
 Indices and tables
