@@ -100,7 +100,7 @@ def limit_depth(walk_iter, depth):
     """Limit the depth of recursion into subdirectories.
     
     A *depth* of 0 limits the walk to the top level directory, a *depth* of 1
-    include subdirectories, etc.
+    includes subdirectories, etc.
 
     Path depth is calculated by counting directory separators, using the
     depth of the first path produced by the underlying iterator as a
