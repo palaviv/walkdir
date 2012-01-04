@@ -256,15 +256,11 @@ def dir_paths(walk_iter):
     for dirpath, subdirs, files in walk_iter:
         yield dirpath
 
-iter_dir_paths = dir_paths
-
 def file_paths(walk_iter):
     """Iterate over the files in directories visited by the underlying walk"""
     for dirpath, subdirs, files in walk_iter:
         for fname in files:
             yield os.path.join(dirpath, fname)
-
-iter_file_paths = file_paths
 
 def all_paths(walk_iter):
     """Iterate over both files and directories visited by the underlying walk"""
@@ -273,4 +269,7 @@ def all_paths(walk_iter):
         for fname in files:
             yield os.path.join(dirpath, fname)
 
+# Legacy API
+iter_dir_paths = dir_paths
+iter_file_paths = file_paths
 iter_paths = all_paths
