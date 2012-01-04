@@ -96,42 +96,58 @@ def exclude_files(walk_iter, *exclude_filters):
 
 # Depth limiting
 
-def limit_depth(walk_iter, depth=None, min_depth=None):
+def limit_depth(walk_iter, depth):
     """Limit the depth of recursion into subdirectories.
     
     A *depth* of 0 limits the walk to the top level directory, a *depth* of 1
-    include subdirectories, etc. The default value of None means that the
-    walk depth is not limited.
-
-    Passing *min_depth* allows higher level directories to be excluded. For
-    example, a *min_depth* of 1 will skip the top level directory.
+    include subdirectories, etc.
 
     Path depth is calculated by counting directory separators, using the
     depth of the first path produced by the underlying iterator as a
     reference point.
     """
-    if depth is not None and depth < 0:
+    if depth < 0:
         msg = "Depth limit less than 0 ({!r} provided)"
-        raise ValueError(msg.format(depth))
-    if min_depth is None:
-        min_depth = 0
-    if min_depth < 0:
-        msg = "Minimium depth less than 0 ({!r} provided)"
         raise ValueError(msg.format(depth))
     sep=os.sep
     for top, subdirs, files in walk_iter:
-        if min_depth == 0:
-            yield top, subdirs, files
+        yield top, subdirs, files
         initial_depth = top.count(sep)
         if depth == 0:
             subdirs[:] = []
         break
     for dirpath, subdirs, files in walk_iter:
         current_depth = dirpath.count(sep) - initial_depth
-        if current_depth >= min_depth:
-            yield dirpath, subdirs, files
-        if depth is not None and current_depth >= depth:
+        yield dirpath, subdirs, files
+        if current_depth >= depth:
             subdirs[:] = []
+
+def min_depth(walk_iter, depth):
+    """Only process subdirectories beyond a minimum depth
+    
+    A *depth* of 1 omits the top level directory, a *depth* of 2
+    starts with subdirectories 2 levels down, etc.
+
+    Path depth is calculated by counting directory separators, using the
+    depth of the first path produced by the underlying iterator as a
+    reference point.
+    
+    NOTE: Since this filter *doesn't yield* higher level directories, any
+    subsequent directory filtering that relies on updating the subdirectory
+    list will have no effect at the minimum depth. Accordingly, this filter
+    should only be applied *after* any directory filtering operations.
+    """
+    if depth < 1:
+        msg = "Minimium depth less than 1 ({!r} provided)"
+        raise ValueError(msg.format(depth))
+    sep=os.sep
+    for top, subdirs, files in walk_iter:
+        initial_depth = top.count(sep)
+        break
+    for dirpath, subdirs, files in walk_iter:
+        current_depth = dirpath.count(sep) - initial_depth
+        if current_depth >= depth:
+            yield dirpath, subdirs, files
 
 # Symlink loop handling
 
@@ -209,9 +225,9 @@ def filtered_walk(top, included_files=None, included_dirs=None,
         walk_iter = os.walk(top, followlinks=followlinks)
     else:
         walk_iter = top
-    # Depth filtering first, since it can cut great swathes from the tree
-    if depth is not None or min_depth is not None:
-        walk_iter = limit_depth(walk_iter, depth, min_depth)
+    # Depth limiting first, since it can cut great swathes from the tree
+    if depth is not None:
+        walk_iter = limit_depth(walk_iter, depth)
     # Next we do our path based filtering that can skip directories
     if included_dirs is not None:
         walk_iter = include_dirs(walk_iter, *included_dirs)
@@ -220,6 +236,10 @@ def filtered_walk(top, included_files=None, included_dirs=None,
     # And then we check the filesystem for symlink loops
     if followlinks:
         walk_iter = handle_symlink_loops(walk_iter)
+    # Now that all other directory filtering has been handled, we can apply
+    # the minimum depth check
+    if min_depth is not None:
+        walk_iter = globals()["min_depth"](walk_iter, min_depth)
     # Finally, apply the file filters that can't alter the shape of the tree
     if included_files is not None:
         walk_iter = include_files(walk_iter, *included_files)

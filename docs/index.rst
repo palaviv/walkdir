@@ -50,6 +50,8 @@ an :mod:`itertools` style iterator pipeline model:
 
 .. autofunction:: limit_depth
 
+.. autofunction:: min_depth
+
 .. autofunction:: handle_symlink_loops
 
 
