@@ -212,11 +212,14 @@ def filtered_walk(top, included_files=None, included_dirs=None,
 # Iterators that flatten the output into a series of paths
 
 def subdir_paths(walk_iter):
-    """Iterate over just the directory names visited by the underlying walk"""
-    for dirpath, subdirs, files in walk_iter:
-        yield dirpath
+    """Iterate over the subdirectories of dirs visited by the underlying walk
 
-iter_dir_paths = subdir_paths
+    Paths are produced in breadth-first order - all subdirectory paths at a
+    given level are produced before any paths deeper in the directory tree.
+    """
+    for dirpath, subdirs, files in walk_iter:
+        for subdir in subdirs:
+            yield os.path.join(dirpath, subdir)
 
 def file_paths(walk_iter):
     """Iterate over the files in directories visited by the underlying walk"""
@@ -224,13 +227,33 @@ def file_paths(walk_iter):
         for fname in files:
             yield os.path.join(dirpath, fname)
 
+def all_paths(walk_iter):
+    """Iterate over the contents of directories visited by the underlying walk
+
+    Paths are produced in breadth-first order - all subdirectory paths and
+    file paths at a given level are produced before any paths deeper in the
+    directory tree.
+    """
+    for dirpath, subdirs, files in walk_iter:
+        for subdir in subdirs:
+            yield os.path.join(dirpath, subdir)
+        for fname in files:
+            yield os.path.join(dirpath, fname)
+
+# Legacy API
+def iter_dir_paths(walk_iter):
+    """Iterate over the directories visited by the underlying walk"""
+    for dirpath, subdirs, files in walk_iter:
+        yield dirpath
+
 iter_file_paths = file_paths
 
-def all_paths(walk_iter):
-    """Iterate over both files and directories visited by the underlying walk"""
+def iter_paths(walk_iter):
+    """Iterate over the files and directories visited by the underlying walk"""
     for dirpath, subdirs, files in walk_iter:
         yield dirpath
         for fname in files:
             yield os.path.join(dirpath, fname)
 
-iter_paths = all_paths
+
+

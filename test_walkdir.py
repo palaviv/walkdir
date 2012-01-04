@@ -5,8 +5,7 @@ import os.path
 
 from walkdir import (include_dirs, exclude_dirs, include_files, exclude_files,
                      limit_depth, handle_symlink_loops, filtered_walk,
-                     all_paths, subdir_paths, file_paths,
-                     iter_paths, iter_dir_paths, iter_file_paths)
+                     all_paths, subdir_paths, file_paths)
 
 expected_files = "file1.txt file2.txt other.txt".split()
 
@@ -57,55 +56,54 @@ dir_filtered_tree = [
 ]
 
 expected_paths = [
-'root',
+'root/subdir1',
+'root/subdir2',
+'root/other',
 'root/file1.txt',
 'root/file2.txt',
 'root/other.txt',
-'root/subdir1',
+'root/subdir1/subdir1',
+'root/subdir1/subdir2',
+'root/subdir1/other',
 'root/subdir1/file1.txt',
 'root/subdir1/file2.txt',
 'root/subdir1/other.txt',
-'root/subdir1/subdir1',
 'root/subdir1/subdir1/file1.txt',
 'root/subdir1/subdir1/file2.txt',
 'root/subdir1/subdir1/other.txt',
-'root/subdir1/subdir2',
 'root/subdir1/subdir2/file1.txt',
 'root/subdir1/subdir2/file2.txt',
 'root/subdir1/subdir2/other.txt',
-'root/subdir1/other',
 'root/subdir1/other/file1.txt',
 'root/subdir1/other/file2.txt',
 'root/subdir1/other/other.txt',
-'root/subdir2',
+'root/subdir2/subdir1',
+'root/subdir2/subdir2',
+'root/subdir2/other',
 'root/subdir2/file1.txt',
 'root/subdir2/file2.txt',
 'root/subdir2/other.txt',
-'root/subdir2/subdir1',
 'root/subdir2/subdir1/file1.txt',
 'root/subdir2/subdir1/file2.txt',
 'root/subdir2/subdir1/other.txt',
-'root/subdir2/subdir2',
 'root/subdir2/subdir2/file1.txt',
 'root/subdir2/subdir2/file2.txt',
 'root/subdir2/subdir2/other.txt',
-'root/subdir2/other',
 'root/subdir2/other/file1.txt',
 'root/subdir2/other/file2.txt',
 'root/subdir2/other/other.txt',
-'root/other',
+'root/other/subdir1',
+'root/other/subdir2',
+'root/other/other',
 'root/other/file1.txt',
 'root/other/file2.txt',
 'root/other/other.txt',
-'root/other/subdir1',
 'root/other/subdir1/file1.txt',
 'root/other/subdir1/file2.txt',
 'root/other/subdir1/other.txt',
-'root/other/subdir2',
 'root/other/subdir2/file1.txt',
 'root/other/subdir2/file2.txt',
 'root/other/subdir2/other.txt',
-'root/other/other',
 'root/other/other/file1.txt',
 'root/other/other/file2.txt',
 'root/other/other/other.txt'
@@ -176,11 +174,6 @@ class NoFilesystemTestCase(_BaseWalkTestCase):
 
     def test_file_paths(self):
         self.assertWalkEqual(expected_file_paths, file_paths(fake_walk()))
-        
-    def test_legacy_names(self):
-        self.assertIs(iter_paths, all_paths)
-        self.assertIs(iter_dir_paths, subdir_paths)
-        self.assertIs(iter_file_paths, file_paths)
 
 class FilteredWalkTestCase(_BaseWalkTestCase):
     # Basically repeat all the standalone cases via the convenience API
