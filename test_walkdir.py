@@ -5,7 +5,7 @@ import os.path
 
 from walkdir import (include_dirs, exclude_dirs, include_files, exclude_files,
                      limit_depth, handle_symlink_loops, filtered_walk,
-                     all_paths, subdir_paths, file_paths,
+                     all_paths, dir_paths, file_paths,
                      iter_paths, iter_dir_paths, iter_file_paths)
 
 expected_files = "file1.txt file2.txt other.txt".split()
@@ -111,7 +111,7 @@ expected_paths = [
 'root/other/other/other.txt'
 ]
 
-expected_subdir_paths = [d for d in expected_paths if not d.endswith('.txt')]
+expected_dir_paths = [d for d in expected_paths if not d.endswith('.txt')]
 expected_file_paths = [f for f in expected_paths if f.endswith('.txt')]
 
 class _BaseWalkTestCase(unittest.TestCase):
@@ -171,15 +171,15 @@ class NoFilesystemTestCase(_BaseWalkTestCase):
     def test_all_paths(self):
         self.assertWalkEqual(expected_paths, all_paths(fake_walk()))
 
-    def test_subdir_paths(self):
-        self.assertWalkEqual(expected_subdir_paths, subdir_paths(fake_walk()))
+    def test_dir_paths(self):
+        self.assertWalkEqual(expected_dir_paths, dir_paths(fake_walk()))
 
     def test_file_paths(self):
         self.assertWalkEqual(expected_file_paths, file_paths(fake_walk()))
         
     def test_legacy_names(self):
         self.assertIs(iter_paths, all_paths)
-        self.assertIs(iter_dir_paths, subdir_paths)
+        self.assertIs(iter_dir_paths, dir_paths)
         self.assertIs(iter_file_paths, file_paths)
 
 class FilteredWalkTestCase(_BaseWalkTestCase):
@@ -193,6 +193,10 @@ class FilteredWalkTestCase(_BaseWalkTestCase):
     def test_limit_depth(self):
         self.assertWalkEqual(depth_0_tree, self.fake_walk(depth=0))
         self.assertWalkEqual(depth_1_tree, self.fake_walk(depth=1))
+        
+    def test_min_depth(self):
+        self.assertWalkEqual([], self.fake_walk(depth=0, min_depth=1))
+        self.assertWalkEqual(depth_1_tree[1:], self.fake_walk(depth=1, min_depth=1))
         
     def test_include_dirs(self):
         self.assertWalkEqual(depth_0_tree, self.fake_walk(included_dirs=()))

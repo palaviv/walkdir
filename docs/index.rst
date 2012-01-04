@@ -25,7 +25,7 @@ Three iterators are provided for iteration over filesystem paths:
 
 .. autofunction:: all_paths
 
-.. autofunction:: subdir_paths
+.. autofunction:: dir_paths
 
 .. autofunction:: file_paths
 
