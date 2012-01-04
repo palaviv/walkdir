@@ -5,6 +5,7 @@ import os.path
 
 from walkdir import (include_dirs, exclude_dirs, include_files, exclude_files,
                      limit_depth, handle_symlink_loops, filtered_walk,
+                     all_paths, subdir_paths, file_paths,
                      iter_paths, iter_dir_paths, iter_file_paths)
 
 expected_files = "file1.txt file2.txt other.txt".split()
@@ -55,7 +56,7 @@ dir_filtered_tree = [
     ('root/subdir1/subdir1', [], ['file1.txt', 'file2.txt', 'other.txt']),
 ]
 
-all_paths = [
+expected_paths = [
 'root',
 'root/file1.txt',
 'root/file2.txt',
@@ -110,8 +111,8 @@ all_paths = [
 'root/other/other/other.txt'
 ]
 
-all_dirs = [d for d in all_paths if not d.endswith('.txt')]
-all_files = [f for f in all_paths if f.endswith('.txt')]
+expected_subdir_paths = [d for d in expected_paths if not d.endswith('.txt')]
+expected_file_paths = [f for f in expected_paths if f.endswith('.txt')]
 
 class _BaseWalkTestCase(unittest.TestCase):
     def assertWalkEqual(self, expected, walk_iter):
@@ -167,14 +168,19 @@ class NoFilesystemTestCase(_BaseWalkTestCase):
         for dirname, subdirs, files in walk_iter:
             self.assertEqual(files, ['file1.txt'])
 
-    def test_iter_paths(self):
-        self.assertWalkEqual(all_paths, iter_paths(fake_walk()))
+    def test_all_paths(self):
+        self.assertWalkEqual(expected_paths, all_paths(fake_walk()))
 
-    def test_iter_dir_paths(self):
-        self.assertWalkEqual(all_dirs, iter_dir_paths(fake_walk()))
+    def test_subdir_paths(self):
+        self.assertWalkEqual(expected_subdir_paths, subdir_paths(fake_walk()))
 
-    def test_iter_file_paths(self):
-        self.assertWalkEqual(all_files, iter_file_paths(fake_walk()))
+    def test_file_paths(self):
+        self.assertWalkEqual(expected_file_paths, file_paths(fake_walk()))
+        
+    def test_legacy_names(self):
+        self.assertIs(iter_paths, all_paths)
+        self.assertIs(iter_dir_paths, subdir_paths)
+        self.assertIs(iter_file_paths, file_paths)
 
 class FilteredWalkTestCase(_BaseWalkTestCase):
     # Basically repeat all the standalone cases via the convenience API

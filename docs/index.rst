@@ -23,11 +23,11 @@ Path Iteration
 
 Three iterators are provided for iteration over filesystem paths:
 
-.. autofunction:: iter_paths
+.. autofunction:: all_paths
 
-.. autofunction:: iter_dir_paths
+.. autofunction:: subdir_paths
 
-.. autofunction:: iter_file_paths
+.. autofunction:: file_paths
 
 
 Directory Walking

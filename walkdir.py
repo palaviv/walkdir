@@ -211,21 +211,26 @@ def filtered_walk(top, included_files=None, included_dirs=None,
 
 # Iterators that flatten the output into a series of paths
 
-def iter_dir_paths(walk_iter):
+def subdir_paths(walk_iter):
     """Iterate over just the directory names visited by the underlying walk"""
     for dirpath, subdirs, files in walk_iter:
         yield dirpath
 
-def iter_file_paths(walk_iter):
+iter_dir_paths = subdir_paths
+
+def file_paths(walk_iter):
     """Iterate over the files in directories visited by the underlying walk"""
     for dirpath, subdirs, files in walk_iter:
         for fname in files:
             yield os.path.join(dirpath, fname)
 
-def iter_paths(walk_iter):
+iter_file_paths = file_paths
+
+def all_paths(walk_iter):
     """Iterate over both files and directories visited by the underlying walk"""
     for dirpath, subdirs, files in walk_iter:
         yield dirpath
         for fname in files:
             yield os.path.join(dirpath, fname)
-    
+
+iter_paths = all_paths
