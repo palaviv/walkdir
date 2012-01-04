@@ -141,6 +141,7 @@ class NoFilesystemTestCase(_BaseWalkTestCase):
     def test_exclude_dirs(self):
         self.assertWalkEqual(expected_tree, exclude_dirs(fake_walk()))
         self.assertWalkEqual(depth_0_tree, exclude_dirs(fake_walk(), '*'))
+        self.assertWalkEqual(depth_0_tree, exclude_dirs(fake_walk(), 'sub*', 'other'))
 
     def test_filter_dirs(self):
         walk_iter = include_dirs(fake_walk(), 'sub*')
@@ -212,6 +213,7 @@ class FilteredWalkTestCase(_BaseWalkTestCase):
     def test_exclude_dirs(self):
         self.assertWalkEqual(expected_tree, self.fake_walk(excluded_dirs=()))
         self.assertWalkEqual(depth_0_tree, self.fake_walk(excluded_dirs=['*']))
+        self.assertWalkEqual(depth_0_tree, self.fake_walk(excluded_dirs=['sub*', 'other']))
 
     def test_filter_dirs(self):
         walk_iter = self.fake_walk(included_dirs=['sub*'],
