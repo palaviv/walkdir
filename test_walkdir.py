@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 """test_walkdir - unittests for the walkdir module"""
 import unittest
 import os.path
