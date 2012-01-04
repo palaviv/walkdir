@@ -96,11 +96,12 @@ def exclude_files(walk_iter, *exclude_filters):
 
 # Depth limiting
 
-def limit_depth(walk_iter, depth, min_depth=None):
+def limit_depth(walk_iter, depth=None, min_depth=None):
     """Limit the depth of recursion into subdirectories.
     
     A *depth* of 0 limits the walk to the top level directory, a *depth* of 1
-    include subdirectories, etc.
+    include subdirectories, etc. The default value of None means that the
+    walk depth is not limited.
 
     Passing *min_depth* allows higher level directories to be excluded. For
     example, a *min_depth* of 1 will skip the top level directory.
@@ -109,7 +110,7 @@ def limit_depth(walk_iter, depth, min_depth=None):
     depth of the first path produced by the underlying iterator as a
     reference point.
     """
-    if depth < 0:
+    if depth is not None and depth < 0:
         msg = "Depth limit less than 0 ({!r} provided)"
         raise ValueError(msg.format(depth))
     if min_depth is None:
@@ -129,7 +130,7 @@ def limit_depth(walk_iter, depth, min_depth=None):
         current_depth = dirpath.count(sep) - initial_depth
         if current_depth >= min_depth:
             yield dirpath, subdirs, files
-        if current_depth >= depth:
+        if depth is not None and current_depth >= depth:
             subdirs[:] = []
 
 # Symlink loop handling

@@ -155,6 +155,8 @@ class NoFilesystemTestCase(_BaseWalkTestCase):
         self.assertWalkEqual([], limit_depth(fake_walk(), 0, min_depth=1))
         self.assertWalkEqual(depth_1_tree[1:],
                              limit_depth(fake_walk(), 1, min_depth=1))
+        self.assertWalkEqual(expected_tree[1:],
+                             limit_depth(fake_walk(), min_depth=1))
         
     def test_include_dirs(self):
         self.assertWalkEqual(depth_0_tree, include_dirs(fake_walk()))
@@ -218,6 +220,7 @@ class FilteredWalkTestCase(_BaseWalkTestCase):
     def test_min_depth(self):
         self.assertWalkEqual([], self.fake_walk(depth=0, min_depth=1))
         self.assertWalkEqual(depth_1_tree[1:], self.fake_walk(depth=1, min_depth=1))
+        self.assertWalkEqual(expected_tree[1:], self.fake_walk(min_depth=1))
         
     def test_include_dirs(self):
         self.assertWalkEqual(depth_0_tree, self.fake_walk(included_dirs=()))
@@ -266,15 +269,19 @@ class PathIterationTestCase(_BaseWalkTestCase):
 
     def test_all_paths(self):
         self.assertWalkEqual(expected_paths, all_paths(self.fake_walk()))
+        self.assertWalkEqual(expected_paths[len(depth_0_paths):],
+                             all_paths(self.fake_walk(min_depth=1)))
         self.assertWalkEqual(depth_0_paths, all_paths(self.fake_walk(depth=0)))
         walk_iter = self.fake_walk(included_files=['file*'],
                                    excluded_files=['*2*'],
                                    included_dirs=['sub*'],
-                                   excluded_dirs=['*2'])
+                                   excluded_dirs=['*2'],)
         self.assertWalkEqual(filtered_paths, all_paths(walk_iter))
 
     def test_dir_paths(self):
         self.assertWalkEqual(expected_dir_paths, dir_paths(self.fake_walk()))
+        self.assertWalkEqual(expected_dir_paths[len(depth_0_dir_paths):],
+                             dir_paths(self.fake_walk(min_depth=1)))
         self.assertWalkEqual(depth_0_dir_paths, dir_paths(self.fake_walk(depth=0)))
         walk_iter = self.fake_walk(included_files=['file*'],
                                    excluded_files=['*2*'],
@@ -284,6 +291,8 @@ class PathIterationTestCase(_BaseWalkTestCase):
 
     def test_file_paths(self):
         self.assertWalkEqual(expected_file_paths, file_paths(self.fake_walk()))
+        self.assertWalkEqual(expected_file_paths[len(depth_0_file_paths):],
+                             file_paths(self.fake_walk(min_depth=1)))
         self.assertWalkEqual(depth_0_file_paths, file_paths(self.fake_walk(depth=0)))
         walk_iter = self.fake_walk(included_files=['file*'],
                                    excluded_files=['*2*'],
