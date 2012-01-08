@@ -10,5 +10,6 @@ setup(
     long_description=open('README.txt').read(),
     author='Nick Coghlan',
     author_email='ncoghlan@gmail.com',
-    url='http://walkdir.readthedocs.org'
+    url='http://walkdir.readthedocs.org',
+    requires=['unittest2']
 )
