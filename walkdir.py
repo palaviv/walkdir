@@ -40,9 +40,10 @@ def include_dirs(walk_iter, *include_filters):
        Inclusion filters are passed directly as arguments
     """
     filter_subdirs = _make_include_filter(include_filters)
-    for dirpath, subdirs, files in walk_iter:
+    for dir_entry in walk_iter:
+        subdirs = dir_entry[1]
         subdirs[:] = filter_subdirs(subdirs)
-        yield dirpath, subdirs, files
+        yield dir_entry
 
 def include_files(walk_iter, *include_filters):
     """Use :func:`fnmatch.fnmatch` patterns to select files of interest
@@ -50,9 +51,10 @@ def include_files(walk_iter, *include_filters):
        Inclusion filters are passed directly as arguments
     """
     filter_files = _make_include_filter(include_filters)
-    for dirpath, subdirs, files in walk_iter:
+    for dir_entry in walk_iter:
+        files = dir_entry[2]
         files[:] = filter_files(files)
-        yield dirpath, subdirs, files
+        yield dir_entry
 
 # Filtering for exclusion
 
@@ -79,9 +81,10 @@ def exclude_dirs(walk_iter, *exclude_filters):
        Exclusion filters are passed directly as arguments
     """
     filter_subdirs = _make_exclude_filter(exclude_filters)
-    for dirpath, subdirs, files in walk_iter:
+    for dir_entry in walk_iter:
+        subdirs = dir_entry[1]
         subdirs[:] = filter_subdirs(subdirs)
-        yield dirpath, subdirs, files
+        yield dir_entry
 
 def exclude_files(walk_iter, *exclude_filters):
     """Use :func:`fnmatch.fnmatch` patterns to skip irrelevant files
@@ -89,9 +92,10 @@ def exclude_files(walk_iter, *exclude_filters):
        Exclusion filters are passed directly as arguments
     """
     filter_files = _make_exclude_filter(exclude_filters)
-    for dirpath, subdirs, files in walk_iter:
+    for dir_entry in walk_iter:
+        files = dir_entry[2]
         files[:] = filter_files(files)
-        yield dirpath, subdirs, files
+        yield dir_entry
 
 
 # Depth limiting
@@ -110,15 +114,19 @@ def limit_depth(walk_iter, depth):
         msg = "Depth limit less than 0 ({!r} provided)"
         raise ValueError(msg.format(depth))
     sep=os.sep
-    for top, subdirs, files in walk_iter:
-        yield top, subdirs, files
+    for dir_entry in walk_iter:
+        yield dir_entry
+        top = dir_entry[0]
+        subdirs = dir_entry[1]
         initial_depth = top.count(sep)
         if depth == 0:
             subdirs[:] = []
         break
-    for dirpath, subdirs, files in walk_iter:
+    for dir_entry in walk_iter:
+        dirpath = dir_entry[0]
+        subdirs = dir_entry[1]
         current_depth = dirpath.count(sep) - initial_depth
-        yield dirpath, subdirs, files
+        yield dir_entry
         if current_depth >= depth:
             subdirs[:] = []
 
@@ -144,10 +152,11 @@ def min_depth(walk_iter, depth):
     for top, subdirs, files in walk_iter:
         initial_depth = top.count(sep)
         break
-    for dirpath, subdirs, files in walk_iter:
+    for dir_entry in walk_iter:
+        dirpath = dir_entry[0]
         current_depth = dirpath.count(sep) - initial_depth
         if current_depth >= depth:
-            yield dirpath, subdirs, files
+            yield dir_entry
 
 # Symlink loop handling
 
@@ -168,11 +177,14 @@ def handle_symlink_loops(walk_iter, onloop=None):
             sys.stderr.write(msg.format(dirpath))
             sys.stderr.flush()
     sep=os.sep
-    for top, subdirs, files in walk_iter:
-        yield top, subdirs, files
+    for dir_entry in walk_iter:
+        yield dir_entry
+        top = dir_entry[0]
         real_top = os.path.abspath(os.path.realpath(top))
         break
-    for dirpath, subdirs, files in walk_iter:
+    for dir_entry in walk_iter:
+        dirpath = dir_entry[0]
+        subdirs = dir_entry[1]
         if os.path.islink(dirpath):
             # We just descended into a directory via a symbolic link
             # Check if we're referring to a directory that is
@@ -188,7 +200,7 @@ def handle_symlink_loops(walk_iter, onloop=None):
                 if not onloop(dirpath):
                     subdirs[:] = []
                     continue
-        yield dirpath, subdirs, files
+        yield dir_entry
 
 # Convenience function that puts together an iterator pipeline
 

@@ -15,8 +15,21 @@ level tools based on the same interface that support filtering, depth
 limiting and handling of symlink loops. The module also offers tools that
 flatten the :func:`os.walk` API into a simple iteration over filesystem paths.
 
-In this module, ``walk_iter`` refers to any iterator that yields
+Walk Iterables
+--------------
+
+In this module, ``walk_iter`` refers to any iterable that produces
 ``path, subdirs, files`` triples of the style produced by :func:`os.walk`.
+
+The module is designed so that all purely filtering operations *preserve*
+the output of the underlying iterable. This means that named tuples, tuples
+containing more than 3 values, or objects that aren't tuples at all but are
+still defined such that ``x[0], x[1], x[2] => dirpath, subdirs, files`` can
+be filtered without being converted to ordinary 3-tuples.
+
+.. versionchanged:: 0.3
+   Objects produced by underlying iterables are now preserved instead of
+   being coerced to ordinary 3-tuples by filtering operations
 
 Path Iteration
 --------------
