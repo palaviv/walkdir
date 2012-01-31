@@ -2,7 +2,7 @@ Release History
 ---------------
 
 
-0.3.0 (2012-01-31)
+0.3 (2012-01-31)
 ~~~~~~~~~~~~~~~~~~
 
 * Issue #7: filter functions now pass the tuples created by underlying
