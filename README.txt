@@ -24,7 +24,7 @@ CPython, the Python Packaging Authority and the Python Software
 Foundation in my priorities for open source contributions.
 
 The symlink handling bug reported in Issue #21 really
-should be fixed though, and that bug reports also shows
+should be fixed though, and that bug report also shows
 that Issues #10 and #11 (regarding some missing tests)
 demonstrate the adage "if it's not tested, it's broken".
 
