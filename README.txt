@@ -8,10 +8,10 @@ produces data in the same format.
 
 It offers tools such as:
 
-  - glob-style filtering for file and directory names
-  - depth limiting for directory recursion
-  - flattening of output into simple sequences of path names
-  - detection of symlink loops when following symlinks
+- glob-style filtering for file and directory names
+- depth limiting for directory recursion
+- flattening of output into simple sequences of path names
+- detection of symlink loops when following symlinks
 
 
 Maintenance status
