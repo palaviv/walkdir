@@ -210,8 +210,6 @@ class _BaseNamedTestCase(unittest.TestCase):
 
 class _BaseFileSystemWalkTestCase(_BaseWalkTestCase):
 
-    maxDiff = None
-
     @classmethod
     def setUpClass(cls):
         cls.test_folder = mkdtemp()
@@ -236,6 +234,10 @@ class _BaseFileSystemWalkTestCase(_BaseWalkTestCase):
                     for folder in expected]
         result = [SortedWalkedDir(*folder) for folder in list(walk_iter)]
         self.assertEqual(sorted(expected), sorted(result))
+
+    def assertPathsEqual(self, expected, walk_iter):
+        expected = [os.path.join(self.test_folder, path) for path in expected]
+        self.assertEqual(sorted(expected), sorted(list(walk_iter)))
 
     def assertFilesEqual(self, dir_entry, expected):
         self.assertEqual(sorted(expected), sorted(dir_entry[2]))
@@ -377,6 +379,10 @@ class NamedFilteredWalkTestCase(_BaseNamedTestCase, FilteredWalkTestCase):
     pass
 
 
+class FilesystemFilteredWalkTestCase(_BaseFileSystemWalkTestCase, FilteredWalkTestCase):
+    pass
+
+
 class PathIterationTestCase(_BaseWalkTestCase):
 
     def test_all_paths(self):
@@ -414,6 +420,10 @@ class PathIterationTestCase(_BaseWalkTestCase):
         
 
 class NamedPathIterationTestCase(_BaseNamedTestCase, PathIterationTestCase):
+    pass
+
+
+class FilesystemPathIterationTestCase(_BaseFileSystemWalkTestCase, PathIterationTestCase):
     pass
 
 
