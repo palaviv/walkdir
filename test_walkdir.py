@@ -1,8 +1,10 @@
 #!/usr/bin/env python
 """test_walkdir - unittests for the walkdir module"""
-import unittest2 as unittest
+import unittest
 import os.path
 from collections import namedtuple
+from tempfile import mkdtemp
+from shutil import rmtree
 
 from walkdir import (include_dirs, exclude_dirs, include_files, exclude_files,
                      limit_depth, min_depth, handle_symlink_loops,
@@ -10,6 +12,7 @@ from walkdir import (include_dirs, exclude_dirs, include_files, exclude_files,
                      iter_paths, iter_dir_paths, iter_file_paths)
 
 expected_files = "file1.txt file2.txt other.txt".split()
+
 
 def fake_walk():
     subdirs = "subdir1 subdir2 other".split()
@@ -24,6 +27,7 @@ def fake_walk():
             dirname2 = os.path.join(dirname, subdir2)
             yield dirname2, [], files[:]
 
+
 class WalkedDir(namedtuple("WalkedDir", "dirpath subdirs files")):
     # We want to check tuples produced by the underlying iterable are
     # preserved, so we deliberately *prevent* equality with ordinary tuples
@@ -31,6 +35,15 @@ class WalkedDir(namedtuple("WalkedDir", "dirpath subdirs files")):
         if not isinstance(other, WalkedDir):
             return False
         return super(WalkedDir, self).__eq__(other)
+
+
+class SortedWalkedDir(WalkedDir):
+    # os.walk use os.listdir that returns files and dirs in arbitrary order.
+    # we need to sort the subdirs and files before comparison
+    def __new__(cls, dirpath, subdirs, files):
+        self = super(SortedWalkedDir, cls).__new__(cls, dirpath, sorted(subdirs), sorted(files))
+        return self
+
 
 def named_walk():
     for dir_entry in fake_walk():
@@ -195,6 +208,39 @@ class _BaseNamedTestCase(unittest.TestCase):
         self.assertEqual(expected, dir_entry.files)
 
 
+class _BaseFileSystemWalkTestCase(_BaseWalkTestCase):
+
+    maxDiff = None
+
+    @classmethod
+    def setUpClass(cls):
+        cls.test_folder = mkdtemp()
+        for folder in [WalkedDir(*folder) for folder in expected_tree]:
+            dir_path = os.path.join(cls.test_folder, folder.dirpath)
+            os.mkdir(dir_path)
+            for file in folder.files:
+                file_path = os.path.join(dir_path, file)
+                with open(file_path, "w") as f:
+                    f.write("walkdir")
+        cls.root_folder = os.path.join(cls.test_folder, "root")
+
+    @classmethod
+    def tearDownClass(cls):
+        rmtree(cls.test_folder)
+
+    def walk(self):
+        return os.walk(self.root_folder)
+
+    def assertWalkEqual(self, expected, walk_iter):
+        expected = [SortedWalkedDir(os.path.join(self.test_folder, folder[0]), folder[1], folder[2])
+                    for folder in expected]
+        result = [SortedWalkedDir(*folder) for folder in list(walk_iter)]
+        self.assertEqual(sorted(expected), sorted(result))
+
+    def assertFilesEqual(self, dir_entry, expected):
+        self.assertEqual(sorted(expected), sorted(dir_entry[2]))
+
+
 class NoFilesystemTestCase(_BaseWalkTestCase):
     
     # Sanity check on the test data generator
@@ -264,6 +310,10 @@ class NoFilesystemTestCase(_BaseWalkTestCase):
 
 
 class NamedNoFilesystemTestCase(_BaseNamedTestCase, NoFilesystemTestCase):
+    pass
+
+
+class FilesystemTestCase(_BaseFileSystemWalkTestCase, NoFilesystemTestCase):
     pass
 
 
@@ -367,7 +417,7 @@ class NamedPathIterationTestCase(_BaseNamedTestCase, PathIterationTestCase):
     pass
 
 
-# TODO: Create filesystem in temporary directory, add tests for 'handle_symlink_loops'
+# TODO: add tests for 'handle_symlink_loops'
 
 if __name__ == "__main__":
     unittest.main()
