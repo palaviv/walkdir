@@ -5,6 +5,7 @@ import os.path
 from collections import namedtuple
 from tempfile import mkdtemp
 from shutil import rmtree
+from copy import deepcopy
 
 from walkdir import (include_dirs, exclude_dirs, include_files, exclude_files,
                      limit_depth, min_depth, handle_symlink_loops,
@@ -180,23 +181,26 @@ symlink_list = [
     ('root/subdir2/dir1.link', 'root/other/subdir1')
 ]
 
-symlink_expected_tree = [
-    ('root', ['subdir1', 'subdir2', 'other'], ['file1.txt', 'file2.txt', 'other.txt', 'file1.link']),
-    ('root/subdir1', ['subdir1', 'subdir2', 'other'], ['file1.txt', 'file2.txt', 'other.txt', 'file1.link']),
-    ('root/subdir1/subdir1', [], ['file1.txt', 'file2.txt', 'other.txt']),
-    ('root/subdir1/subdir2', [], ['file1.txt', 'file2.txt', 'other.txt']),
-    ('root/subdir1/other', [], ['file1.txt', 'file2.txt', 'other.txt']),
-    ('root/subdir2', ['subdir1', 'subdir2', 'other', 'dir1.link'], ['file1.txt', 'file2.txt', 'other.txt']),
-    ('root/subdir2/subdir1', [], ['file1.txt', 'file2.txt', 'other.txt']),
-    ('root/subdir2/subdir2', [], ['file1.txt', 'file2.txt', 'other.txt']),
-    ('root/subdir2/other', [], ['file1.txt', 'file2.txt', 'other.txt']),
-    ('root/other', ['subdir1', 'subdir2', 'other'], ['file1.txt', 'file2.txt', 'other.txt']),
-    ('root/other/subdir1', [], ['file1.txt', 'file2.txt', 'other.txt']),
-    ('root/other/subdir2', [], ['file1.txt', 'file2.txt', 'other.txt']),
-    ('root/other/other', [], ['file1.txt', 'file2.txt', 'other.txt']),
-]
+symlink_expected_tree = deepcopy(expected_tree)
+symlink_expected_tree[0][2].append('file1.link')
+symlink_expected_tree[1][2].append('file1.link')
+symlink_expected_tree[5][1].append('dir1.link')
 
 dir_symlink = ('root/subdir2/dir1.link', [], ['file1.txt', 'file2.txt', 'other.txt'])
+
+symlink_loop_list = [
+    ('root/subdir1/subdir1/subdir1.link', 'root/subdir1'),
+]
+
+symlink_loop_expected_tree = deepcopy(expected_tree)
+symlink_loop_expected_tree[2][1].append("subdir1.link")
+
+symlink_loop_inside = [
+    ('root/subdir1/subdir1/subdir1.link', ['other', 'subdir1', 'subdir2'], ['file1.txt', 'file2.txt', 'other.txt']),
+    ('root/subdir1/subdir1/subdir1.link/subdir1', ['subdir1.link'], ['file1.txt', 'file2.txt', 'other.txt']),
+    ('root/subdir1/subdir1/subdir1.link/subdir2', [], ['file1.txt', 'file2.txt', 'other.txt']),
+    ('root/subdir1/subdir1/subdir1.link/other', [], ['file1.txt', 'file2.txt', 'other.txt']),
+]
 
 
 class _BaseWalkTestCase(unittest.TestCase):
@@ -471,8 +475,36 @@ class SymlinkTestCase(_BaseFileSystemWalkTestCase):
         self.assertWalkEqual(symlink_expected_tree + [dir_symlink], self.filtered_walk(followlinks=True))
 
 
+class SymlinkLoopTestCase(_BaseFileSystemWalkTestCase):
+    @classmethod
+    def setUpClass(cls):
+        super(SymlinkLoopTestCase, cls).setUpClass()
+        for link_name, source in symlink_loop_list:
+            os.symlink(os.path.join(cls.test_folder, source), os.path.join(cls.test_folder, link_name))
 
-# TODO: add tests for 'handle_symlink_loops'
+    def test_handle_symlink_loop(self):
+        loop_list = []
+
+        def onloop(dirpath):
+            loop_list.append(dirpath)
+
+        self.assertWalkEqual(symlink_loop_expected_tree,
+                             handle_symlink_loops(self.walk(followlinks=True), onloop=onloop))
+        self.assertEqual(loop_list, [os.path.join(self.test_folder, link_name) for link_name, _ in symlink_loop_list])
+
+    def test_handle_symlink_onloop_return_true(self):
+        first_loop = True
+
+        def onloop(dirpath):
+            nonlocal first_loop
+            if first_loop:
+                first_loop = False
+                return True
+            return False
+
+        self.assertWalkEqual(symlink_loop_expected_tree + symlink_loop_inside,
+                             handle_symlink_loops(self.walk(followlinks=True), onloop=onloop))
+
 
 if __name__ == "__main__":
     unittest.main()
