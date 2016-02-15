@@ -23,7 +23,7 @@ def fake_walk():
         dirname = os.path.join(root_dir, subdir)
         subdirs2 = subdirs[:]
         yield dirname, subdirs2, files[:]
-        for subdir2 in subdirs2: 
+        for subdir2 in subdirs2:
             dirname2 = os.path.join(dirname, subdir2)
             yield dirname2, [], files[:]
 
@@ -174,6 +174,30 @@ filtered_paths = [
 filtered_dir_paths = [d for d in filtered_paths if not d.endswith('.txt')]
 filtered_file_paths = [f for f in filtered_paths if f.endswith('.txt')]
 
+symlink_list = [
+    ('root/file1.link', 'root/file1.txt'),
+    ('root/subdir1/file1.link', 'root/file1.txt'),
+    ('root/subdir2/dir1.link', 'root/other/subdir1')
+]
+
+symlink_expected_tree = [
+    ('root', ['subdir1', 'subdir2', 'other'], ['file1.txt', 'file2.txt', 'other.txt', 'file1.link']),
+    ('root/subdir1', ['subdir1', 'subdir2', 'other'], ['file1.txt', 'file2.txt', 'other.txt', 'file1.link']),
+    ('root/subdir1/subdir1', [], ['file1.txt', 'file2.txt', 'other.txt']),
+    ('root/subdir1/subdir2', [], ['file1.txt', 'file2.txt', 'other.txt']),
+    ('root/subdir1/other', [], ['file1.txt', 'file2.txt', 'other.txt']),
+    ('root/subdir2', ['subdir1', 'subdir2', 'other', 'dir1.link'], ['file1.txt', 'file2.txt', 'other.txt']),
+    ('root/subdir2/subdir1', [], ['file1.txt', 'file2.txt', 'other.txt']),
+    ('root/subdir2/subdir2', [], ['file1.txt', 'file2.txt', 'other.txt']),
+    ('root/subdir2/other', [], ['file1.txt', 'file2.txt', 'other.txt']),
+    ('root/other', ['subdir1', 'subdir2', 'other'], ['file1.txt', 'file2.txt', 'other.txt']),
+    ('root/other/subdir1', [], ['file1.txt', 'file2.txt', 'other.txt']),
+    ('root/other/subdir2', [], ['file1.txt', 'file2.txt', 'other.txt']),
+    ('root/other/other', [], ['file1.txt', 'file2.txt', 'other.txt']),
+]
+
+dir_symlink = ('root/subdir2/dir1.link', [], ['file1.txt', 'file2.txt', 'other.txt'])
+
 
 class _BaseWalkTestCase(unittest.TestCase):
     def walk(self):
@@ -226,8 +250,11 @@ class _BaseFileSystemWalkTestCase(_BaseWalkTestCase):
     def tearDownClass(cls):
         rmtree(cls.test_folder)
 
-    def walk(self):
-        return os.walk(self.root_folder)
+    def walk(self, followlinks=False):
+        return os.walk(self.root_folder, followlinks=followlinks)
+
+    def filtered_walk(self, *args, **kwds):
+        return filtered_walk(self.root_folder, *args, **kwds)
 
     def assertWalkEqual(self, expected, walk_iter):
         expected = [SortedWalkedDir(os.path.join(self.test_folder, folder[0]), folder[1], folder[2])
@@ -244,7 +271,7 @@ class _BaseFileSystemWalkTestCase(_BaseWalkTestCase):
 
 
 class NoFilesystemTestCase(_BaseWalkTestCase):
-    
+
     # Sanity check on the test data generator
     def test_unfiltered(self):
         self.assertWalkEqual(expected_tree, self.walk())
@@ -252,12 +279,12 @@ class NoFilesystemTestCase(_BaseWalkTestCase):
     def test_limit_depth(self):
         self.assertWalkEqual(depth_0_tree, limit_depth(self.walk(), 0))
         self.assertWalkEqual(depth_1_tree, limit_depth(self.walk(), 1))
-        
+
     def test_min_depth(self):
         self.assertWalkEqual([], min_depth(self.walk(), 4))
         self.assertWalkEqual(expected_tree[1:], min_depth(self.walk(), 1))
         self.assertWalkEqual(min_depth_2_tree, min_depth(self.walk(), 2))
-        
+
     def test_include_dirs(self):
         self.assertWalkEqual(depth_0_tree, include_dirs(self.walk()))
         self.assertWalkEqual(expected_tree, include_dirs(self.walk(), '*'))
@@ -327,12 +354,12 @@ class FilteredWalkTestCase(_BaseWalkTestCase):
     def test_limit_depth(self):
         self.assertWalkEqual(depth_0_tree, self.filtered_walk(depth=0))
         self.assertWalkEqual(depth_1_tree, self.filtered_walk(depth=1))
-        
+
     def test_min_depth(self):
         self.assertWalkEqual([], self.filtered_walk(min_depth=4))
         self.assertWalkEqual(expected_tree[1:], self.filtered_walk(min_depth=1))
         self.assertWalkEqual(min_depth_2_tree, self.filtered_walk(min_depth=2))
-        
+
     def test_include_dirs(self):
         self.assertWalkEqual(depth_0_tree, self.filtered_walk(included_dirs=()))
         self.assertWalkEqual(expected_tree, self.filtered_walk(included_dirs=['*']))
@@ -417,7 +444,7 @@ class PathIterationTestCase(_BaseWalkTestCase):
                                    included_dirs=['sub*'],
                                    excluded_dirs=['*2'])
         self.assertPathsEqual(filtered_file_paths, file_paths(walk_iter))
-        
+
 
 class NamedPathIterationTestCase(_BaseNamedTestCase, PathIterationTestCase):
     pass
@@ -425,6 +452,24 @@ class NamedPathIterationTestCase(_BaseNamedTestCase, PathIterationTestCase):
 
 class FilesystemPathIterationTestCase(_BaseFileSystemWalkTestCase, PathIterationTestCase):
     pass
+
+
+class SymlinkTestCase(_BaseFileSystemWalkTestCase):
+
+    @classmethod
+    def setUpClass(cls):
+        super(SymlinkTestCase, cls).setUpClass()
+        for link_name, source in symlink_list:
+            os.symlink(os.path.join(cls.test_folder, source), os.path.join(cls.test_folder, link_name))
+
+    # sanity on the temporary directory
+    def test_unfiltered(self):
+        self.assertWalkEqual(symlink_expected_tree, self.walk())
+        self.assertWalkEqual(symlink_expected_tree + [dir_symlink], self.walk(followlinks=True))
+
+    def test_following_symlinks(self):
+        self.assertWalkEqual(symlink_expected_tree + [dir_symlink], self.filtered_walk(followlinks=True))
+
 
 
 # TODO: add tests for 'handle_symlink_loops'
