@@ -505,6 +505,18 @@ class SymlinkLoopTestCase(_BaseFileSystemWalkTestCase):
         self.assertWalkEqual(symlink_loop_expected_tree + symlink_loop_inside,
                              handle_symlink_loops(self.walk(followlinks=True), onloop=onloop))
 
+    def test_symlink_to_current_directory(self):
+        """
+        see https://bitbucket.org/ncoghlan/walkdir/issues/21/symlinks-pointing-to-the-current-directory
+        """
+        new_expected_tree = deepcopy(symlink_loop_expected_tree)
+        new_expected_tree[0][1].append("link")
+        os.symlink(".", os.path.join(self.test_folder, "root", "link"))
+        self.assertWalkEqual(new_expected_tree,
+                             handle_symlink_loops(self.walk(followlinks=True)))
+
+
+
 
 if __name__ == "__main__":
     unittest.main()
