@@ -493,12 +493,12 @@ class SymlinkLoopTestCase(_BaseFileSystemWalkTestCase):
         self.assertEqual(loop_list, [os.path.join(self.test_folder, link_name) for link_name, _ in symlink_loop_list])
 
     def test_handle_symlink_onloop_return_true(self):
-        first_loop = True
+        # Python 2 compatibility: use a list rather than nonlocal assignment
+        first_loop = [True]
 
         def onloop(dirpath):
-            nonlocal first_loop
             if first_loop:
-                first_loop = False
+                first_loop.pop()
                 return True
             return False
 
