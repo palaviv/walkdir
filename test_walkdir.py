@@ -5,6 +5,7 @@ import os.path
 from collections import namedtuple
 from tempfile import mkdtemp
 from shutil import rmtree
+from copy import deepcopy
 
 from walkdir import (include_dirs, exclude_dirs, include_files, exclude_files,
                      limit_depth, min_depth, handle_symlink_loops,
@@ -23,7 +24,7 @@ def fake_walk():
         dirname = os.path.join(root_dir, subdir)
         subdirs2 = subdirs[:]
         yield dirname, subdirs2, files[:]
-        for subdir2 in subdirs2: 
+        for subdir2 in subdirs2:
             dirname2 = os.path.join(dirname, subdir2)
             yield dirname2, [], files[:]
 
@@ -174,6 +175,33 @@ filtered_paths = [
 filtered_dir_paths = [d for d in filtered_paths if not d.endswith('.txt')]
 filtered_file_paths = [f for f in filtered_paths if f.endswith('.txt')]
 
+symlink_list = [
+    ('root/file1.link', 'root/file1.txt'),
+    ('root/subdir1/file1.link', 'root/file1.txt'),
+    ('root/subdir2/dir1.link', 'root/other/subdir1')
+]
+
+symlink_expected_tree = deepcopy(expected_tree)
+symlink_expected_tree[0][2].append('file1.link')
+symlink_expected_tree[1][2].append('file1.link')
+symlink_expected_tree[5][1].append('dir1.link')
+
+dir_symlink = ('root/subdir2/dir1.link', [], ['file1.txt', 'file2.txt', 'other.txt'])
+
+symlink_loop_list = [
+    ('root/subdir1/subdir1/subdir1.link', 'root/subdir1'),
+]
+
+symlink_loop_expected_tree = deepcopy(expected_tree)
+symlink_loop_expected_tree[2][1].append("subdir1.link")
+
+symlink_loop_inside = [
+    ('root/subdir1/subdir1/subdir1.link', ['other', 'subdir1', 'subdir2'], ['file1.txt', 'file2.txt', 'other.txt']),
+    ('root/subdir1/subdir1/subdir1.link/subdir1', ['subdir1.link'], ['file1.txt', 'file2.txt', 'other.txt']),
+    ('root/subdir1/subdir1/subdir1.link/subdir2', [], ['file1.txt', 'file2.txt', 'other.txt']),
+    ('root/subdir1/subdir1/subdir1.link/other', [], ['file1.txt', 'file2.txt', 'other.txt']),
+]
+
 
 class _BaseWalkTestCase(unittest.TestCase):
     def walk(self):
@@ -226,8 +254,11 @@ class _BaseFileSystemWalkTestCase(_BaseWalkTestCase):
     def tearDownClass(cls):
         rmtree(cls.test_folder)
 
-    def walk(self):
-        return os.walk(self.root_folder)
+    def walk(self, followlinks=False):
+        return os.walk(self.root_folder, followlinks=followlinks)
+
+    def filtered_walk(self, *args, **kwds):
+        return filtered_walk(self.root_folder, *args, **kwds)
 
     def assertWalkEqual(self, expected, walk_iter):
         expected = [SortedWalkedDir(os.path.join(self.test_folder, folder[0]), folder[1], folder[2])
@@ -244,7 +275,7 @@ class _BaseFileSystemWalkTestCase(_BaseWalkTestCase):
 
 
 class NoFilesystemTestCase(_BaseWalkTestCase):
-    
+
     # Sanity check on the test data generator
     def test_unfiltered(self):
         self.assertWalkEqual(expected_tree, self.walk())
@@ -252,12 +283,12 @@ class NoFilesystemTestCase(_BaseWalkTestCase):
     def test_limit_depth(self):
         self.assertWalkEqual(depth_0_tree, limit_depth(self.walk(), 0))
         self.assertWalkEqual(depth_1_tree, limit_depth(self.walk(), 1))
-        
+
     def test_min_depth(self):
         self.assertWalkEqual([], min_depth(self.walk(), 4))
         self.assertWalkEqual(expected_tree[1:], min_depth(self.walk(), 1))
         self.assertWalkEqual(min_depth_2_tree, min_depth(self.walk(), 2))
-        
+
     def test_include_dirs(self):
         self.assertWalkEqual(depth_0_tree, include_dirs(self.walk()))
         self.assertWalkEqual(expected_tree, include_dirs(self.walk(), '*'))
@@ -327,12 +358,12 @@ class FilteredWalkTestCase(_BaseWalkTestCase):
     def test_limit_depth(self):
         self.assertWalkEqual(depth_0_tree, self.filtered_walk(depth=0))
         self.assertWalkEqual(depth_1_tree, self.filtered_walk(depth=1))
-        
+
     def test_min_depth(self):
         self.assertWalkEqual([], self.filtered_walk(min_depth=4))
         self.assertWalkEqual(expected_tree[1:], self.filtered_walk(min_depth=1))
         self.assertWalkEqual(min_depth_2_tree, self.filtered_walk(min_depth=2))
-        
+
     def test_include_dirs(self):
         self.assertWalkEqual(depth_0_tree, self.filtered_walk(included_dirs=()))
         self.assertWalkEqual(expected_tree, self.filtered_walk(included_dirs=['*']))
@@ -417,7 +448,7 @@ class PathIterationTestCase(_BaseWalkTestCase):
                                    included_dirs=['sub*'],
                                    excluded_dirs=['*2'])
         self.assertPathsEqual(filtered_file_paths, file_paths(walk_iter))
-        
+
 
 class NamedPathIterationTestCase(_BaseNamedTestCase, PathIterationTestCase):
     pass
@@ -427,7 +458,65 @@ class FilesystemPathIterationTestCase(_BaseFileSystemWalkTestCase, PathIteration
     pass
 
 
-# TODO: add tests for 'handle_symlink_loops'
+class SymlinkTestCase(_BaseFileSystemWalkTestCase):
+
+    @classmethod
+    def setUpClass(cls):
+        super(SymlinkTestCase, cls).setUpClass()
+        for link_name, source in symlink_list:
+            os.symlink(os.path.join(cls.test_folder, source), os.path.join(cls.test_folder, link_name))
+
+    # sanity on the temporary directory
+    def test_unfiltered(self):
+        self.assertWalkEqual(symlink_expected_tree, self.walk())
+        self.assertWalkEqual(symlink_expected_tree + [dir_symlink], self.walk(followlinks=True))
+
+    def test_following_symlinks(self):
+        self.assertWalkEqual(symlink_expected_tree + [dir_symlink], self.filtered_walk(followlinks=True))
+
+
+class SymlinkLoopTestCase(_BaseFileSystemWalkTestCase):
+    @classmethod
+    def setUpClass(cls):
+        super(SymlinkLoopTestCase, cls).setUpClass()
+        for link_name, source in symlink_loop_list:
+            os.symlink(os.path.join(cls.test_folder, source), os.path.join(cls.test_folder, link_name))
+
+    def test_handle_symlink_loop(self):
+        loop_list = []
+
+        def onloop(dirpath):
+            loop_list.append(dirpath)
+
+        self.assertWalkEqual(symlink_loop_expected_tree,
+                             handle_symlink_loops(self.walk(followlinks=True), onloop=onloop))
+        self.assertEqual(loop_list, [os.path.join(self.test_folder, link_name) for link_name, _ in symlink_loop_list])
+
+    def test_handle_symlink_onloop_return_true(self):
+        first_loop = True
+
+        def onloop(dirpath):
+            nonlocal first_loop
+            if first_loop:
+                first_loop = False
+                return True
+            return False
+
+        self.assertWalkEqual(symlink_loop_expected_tree + symlink_loop_inside,
+                             handle_symlink_loops(self.walk(followlinks=True), onloop=onloop))
+
+    def test_symlink_to_current_directory(self):
+        """
+        see https://bitbucket.org/ncoghlan/walkdir/issues/21/symlinks-pointing-to-the-current-directory
+        """
+        new_expected_tree = deepcopy(symlink_loop_expected_tree)
+        new_expected_tree[0][1].append("link")
+        os.symlink(".", os.path.join(self.test_folder, "root", "link"))
+        self.assertWalkEqual(new_expected_tree,
+                             handle_symlink_loops(self.walk(followlinks=True)))
+
+
+
 
 if __name__ == "__main__":
     unittest.main()
