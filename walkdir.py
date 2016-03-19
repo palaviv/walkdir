@@ -173,7 +173,7 @@ def handle_symlink_loops(walk_iter, onloop=None):
     """
     if onloop is None:
         def onloop(dirpath):
-            msg = "Symlink {!r} refers to a parent directory, skipping\n"
+            msg = "Symlink {0!r} refers to a parent directory, skipping\n"
             sys.stderr.write(msg.format(dirpath))
             sys.stderr.flush()
     sep=os.sep
