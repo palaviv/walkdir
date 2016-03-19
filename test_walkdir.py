@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """test_walkdir - unittests for the walkdir module"""
-import unittest
+import unittest2 as unittest
 import os.path
 from collections import namedtuple
 from tempfile import mkdtemp
