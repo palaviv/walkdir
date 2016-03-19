@@ -132,14 +132,14 @@ Supported Python versions are 2.6, 2.7 and 3.1+.
 Development and Support
 -----------------------
 
-WalkDir is developed and maintained on BitBucket_, with continuous
+WalkDir is developed and maintained on Gitub_, with continuous
 integration services provided by `Shining Panda`_.
 
 Problems and suggested improvements can be posted to the `issue tracker`_.
 
-.. _BitBucket: https://bitbucket.org/ncoghlan/walkdir/overview
+.. _Gitub: https://github.com/ncoghlan/walkdir
 .. _Shining Panda: https://jenkins.shiningpanda.com/ncoghlan-devs-projects
-.. _issue tracker: https://bitbucket.org/ncoghlan/walkdir/issues?status=new&status=open
+.. _issue tracker: https://github.com/ncoghlan/walkdir/issues
 
 
 .. include:: ../NEWS.rst
