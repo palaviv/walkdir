@@ -516,7 +516,29 @@ class SymlinkLoopTestCase(_BaseFileSystemWalkTestCase):
                              handle_symlink_loops(self.walk(followlinks=True)))
 
 
+class DirSymlinkAsFileTestCase(_BaseWalkTestCase):
 
+    @classmethod
+    def setUpClass(cls):
+        cls.root_folder = mkdtemp()
+        cls.test_folder = os.path.join(cls.root_folder, "test folder")
+        os.mkdir(cls.test_folder)
+        linked_folder_path = os.path.join(cls.root_folder, "linked folder")
+        os.mkdir(linked_folder_path)
+        link_path = os.path.join(cls.test_folder, "test.link")
+        os.symlink(linked_folder_path, link_path)
+        cls.expected = [cls.test_folder, link_path]
+
+    def test_dirsymlink_as_files(self):
+        self.assertPathsEqual(self.expected, all_paths(filtered_walk(self.test_folder, dirsymlink=True)))
+
+    def test_dirsymlink_and_followlinks(self):
+        self.assertPathsEqual(self.expected,
+                              all_paths(filtered_walk(self.test_folder, dirsymlink=True, followlinks=True)))
+
+    @classmethod
+    def tearDownClass(cls):
+        rmtree(cls.root_folder)
 
 if __name__ == "__main__":
     unittest.main()

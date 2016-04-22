@@ -202,11 +202,32 @@ def handle_symlink_loops(walk_iter, onloop=None):
                     continue
         yield dir_entry
 
+
+def handle_dirsymlink_as_file(walk_iter):
+    """Handle symlink to directories as files during the walk.
+
+       By default os.walk insert symlink to directories to the subdirs list.
+       This function move symlink to directories from the subdirs list to the file list.
+
+       NOTE: This function is not needed when using the followlinks option.
+       when following links the dirsymlinks will be walked when entering the linked dir.
+    """
+    for dir_entry in walk_iter:
+        dirpath = dir_entry[0]
+        subdirs = dir_entry[1]
+        files = dir_entry[2]
+        for subdir in subdirs:
+            if os.path.islink(os.path.join(dirpath, subdir)):
+                files.append(subdir)
+                subdirs.remove(subdir)
+        yield dir_entry
+
 # Convenience function that puts together an iterator pipeline
 
 def filtered_walk(top, included_files=None, included_dirs=None,
                        excluded_files=None, excluded_dirs=None,
-                       depth=None, followlinks=False, min_depth=None):
+                       depth=None, followlinks=False, min_depth=None,
+                       dirsymlink=False):
     """This is a wrapper around ``os.walk()``, with these additional features:
         - *top* may be either a string (which will be passed to ``os.walk()``)
           or any iterable that produces ``path, subdirs, files`` triples
@@ -257,6 +278,9 @@ def filtered_walk(top, included_files=None, included_dirs=None,
         walk_iter = include_files(walk_iter, *included_files)
     if excluded_files is not None:
         walk_iter = exclude_files(walk_iter, *excluded_files)
+    # There is no need in using dirsymlink when following links.
+    if dirsymlink and not followlinks:
+        walk_iter = handle_dirsymlink_as_file(walk_iter)
     for triple in walk_iter:
         yield triple
 
