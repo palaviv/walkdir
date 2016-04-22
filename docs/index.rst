@@ -67,6 +67,8 @@ an :mod:`itertools` style iterator pipeline model:
 
 .. autofunction:: handle_symlink_loops
 
+.. autofunction:: handle_dirsymlink_as_file
+
 
 Examples
 ========
