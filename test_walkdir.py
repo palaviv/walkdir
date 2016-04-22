@@ -186,6 +186,10 @@ symlink_expected_tree[0][2].append('file1.link')
 symlink_expected_tree[1][2].append('file1.link')
 symlink_expected_tree[5][1].append('dir1.link')
 
+dir_symlink_as_file_expected_tree = deepcopy(symlink_expected_tree)
+dir_symlink_as_file_expected_tree[5][1].remove('dir1.link')
+dir_symlink_as_file_expected_tree[5][2].append('dir1.link')
+
 dir_symlink = ('root/subdir2/dir1.link', [], ['file1.txt', 'file2.txt', 'other.txt'])
 
 symlink_loop_list = [
@@ -474,6 +478,13 @@ class SymlinkTestCase(_BaseFileSystemWalkTestCase):
     def test_following_symlinks(self):
         self.assertWalkEqual(symlink_expected_tree + [dir_symlink], self.filtered_walk(followlinks=True))
 
+    def test_dirsymlink_as_files(self):
+        self.assertWalkEqual(dir_symlink_as_file_expected_tree, self.filtered_walk(dirsymlink=True))
+
+    def test_dirsymlink_and_followlinks(self):
+        self.assertWalkEqual(symlink_expected_tree + [dir_symlink],
+                             self.filtered_walk(dirsymlink=True, followlinks=True))
+
 
 class SymlinkLoopTestCase(_BaseFileSystemWalkTestCase):
     @classmethod
@@ -515,30 +526,6 @@ class SymlinkLoopTestCase(_BaseFileSystemWalkTestCase):
         self.assertWalkEqual(new_expected_tree,
                              handle_symlink_loops(self.walk(followlinks=True)))
 
-
-class DirSymlinkAsFileTestCase(_BaseWalkTestCase):
-
-    @classmethod
-    def setUpClass(cls):
-        cls.root_folder = mkdtemp()
-        cls.test_folder = os.path.join(cls.root_folder, "test folder")
-        os.mkdir(cls.test_folder)
-        linked_folder_path = os.path.join(cls.root_folder, "linked folder")
-        os.mkdir(linked_folder_path)
-        link_path = os.path.join(cls.test_folder, "test.link")
-        os.symlink(linked_folder_path, link_path)
-        cls.expected = [cls.test_folder, link_path]
-
-    def test_dirsymlink_as_files(self):
-        self.assertPathsEqual(self.expected, all_paths(filtered_walk(self.test_folder, dirsymlink=True)))
-
-    def test_dirsymlink_and_followlinks(self):
-        self.assertPathsEqual(self.expected,
-                              all_paths(filtered_walk(self.test_folder, dirsymlink=True, followlinks=True)))
-
-    @classmethod
-    def tearDownClass(cls):
-        rmtree(cls.root_folder)
 
 if __name__ == "__main__":
     unittest.main()
