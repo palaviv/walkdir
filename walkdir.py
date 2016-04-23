@@ -265,8 +265,19 @@ def filtered_walk(top, included_files=None, included_dirs=None,
 
 def dir_paths(walk_iter):
     """Iterate over just the directory names visited by the underlying walk"""
-    for dirpath, subdirs, files in walk_iter:
-        yield dirpath
+    dir_entry = next(walk_iter, None)
+    if dir_entry is None:
+        return
+    top = dir_entry[0]
+    yield top
+    while dir_entry:
+        dirpath = dir_entry[0]
+        if top not in dirpath:
+            yield dirpath
+            top = dirpath
+        for subdir in dir_entry[1]:
+            yield os.path.join(dirpath, subdir)
+        dir_entry = next(walk_iter, None)
 
 def file_paths(walk_iter):
     """Iterate over the files in directories visited by the underlying walk"""
@@ -276,10 +287,21 @@ def file_paths(walk_iter):
 
 def all_paths(walk_iter):
     """Iterate over both files and directories visited by the underlying walk"""
-    for dirpath, subdirs, files in walk_iter:
-        yield dirpath
-        for fname in files:
+    dir_entry = next(walk_iter, None)
+    if dir_entry is None:
+        return
+    top = dir_entry[0]
+    yield top
+    while dir_entry:
+        dirpath = dir_entry[0]
+        if top not in dirpath:
+            yield dirpath
+            top = dirpath
+        for fname in dir_entry[2]:
             yield os.path.join(dirpath, fname)
+        for subdir in dir_entry[1]:
+            yield os.path.join(dirpath, subdir)
+        dir_entry = next(walk_iter, None)
 
 # Legacy API
 iter_dir_paths = dir_paths
