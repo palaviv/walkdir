@@ -43,6 +43,14 @@ Three iterators are provided for iteration over filesystem paths:
 .. autofunction:: file_paths
 
 
+.. versionchanged:: 0.4
+  The functions yeild subdirs.
+
+.. note::
+  When used with :func:`min_depth` the output will be produced as multiple
+  independent walks of each directory bigger then given *min_depth*.
+
+
 Directory Walking
 -----------------
 
@@ -86,13 +94,13 @@ of its own source tree::
     ./VERSION.txt
     ./README.txt
     >>> dirs = dir_paths(filtered_walk('.', depth=1, min_depth=1,
-    ...                  excluded_dirs=['__pycache__', '.hg']))
+    ...                  excluded_dirs=['__pycache__', '.git']))
     >>> print '\n'.join(dirs)
     ./docs
     ./dist
     >>> paths = all_paths(filtered_walk('.', depth=1,
     ...                   included_files=['*.py', '*.txt', '*.rst'],
-    ...                   excluded_dirs=['__pycache__', '.hg']))))
+    ...                   excluded_dirs=['__pycache__', '.git']))
     >>> print '\n'.join(paths)
     .
     ./setup.py
@@ -133,12 +141,12 @@ Development and Support
 -----------------------
 
 WalkDir is developed and maintained on Gitub_, with continuous
-integration services provided by `Shining Panda`_.
+integration services provided by `Travis-CI`_.
 
 Problems and suggested improvements can be posted to the `issue tracker`_.
 
 .. _Gitub: https://github.com/ncoghlan/walkdir
-.. _Shining Panda: https://jenkins.shiningpanda.com/ncoghlan-devs-projects
+.. _Travis-CI: https://travis-ci.org/ncoghlan/walkdir
 .. _issue tracker: https://github.com/ncoghlan/walkdir/issues
 
 
