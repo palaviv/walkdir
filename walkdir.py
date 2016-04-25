@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """walkdir - iterative tools for working with os.walk() and similar interfaces
 """
 import fnmatch
