@@ -140,10 +140,28 @@ def min_depth(walk_iter, depth):
     depth of the first path produced by the underlying iterator as a
     reference point.
     
-    NOTE: Since this filter *doesn't yield* higher level directories, any
-    subsequent directory filtering that relies on updating the subdirectory
-    list will have no effect at the minimum depth. Accordingly, this filter
-    should only be applied *after* any directory filtering operations.
+    .. note:: Since this filter *doesn't yield* higher level directories, any
+      subsequent directory filtering that relies on updating the subdirectory
+      list will have no effect at the minimum depth. Accordingly, this filter
+      should only be applied *after* any directory filtering operations.
+
+    .. note:: The result of using this filter is the same as chaining
+      multiple independents :func:`os.walk` iterators using :func:`itertools.chain`.
+      Lets assume the following directory tree::
+
+        >>> tree test
+        test
+        ├── file1.txt
+        ├── file2.txt
+        ├── test2
+        │   ├── file1.txt
+        │   ├── file2.txt
+        │   └── test3
+        └── test4
+            ├── file1.txt
+            └── test5
+
+      Using *depth* of 1 will emit the exact iterator as ``itertools.chain(os.walk(test2), os.walk(test4)).``
     """
     if depth < 1:
         msg = "Minimium depth less than 1 ({!r} provided)"

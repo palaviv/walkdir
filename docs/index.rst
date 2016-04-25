@@ -44,7 +44,37 @@ Three iterators are provided for iteration over filesystem paths:
 
 
 .. versionchanged:: 0.4
-  The functions yeild subdirs.
+  The functions yeild subdirs. As a result the files order has benn changed
+  Lets assume the following directory tree::
+
+    >>> tree test
+    test
+    ├── file1.txt
+    ├── file2.txt
+    ├── test2
+    │   ├── file1.txt
+    │   ├── file2.txt
+    │   └── test3
+    └── test4
+        ├── file1.txt
+        └── test5
+
+
+  Then we will receive the following result::
+
+    >>> from walkdir import filtered_walk, dir_paths, all_paths, file_paths
+    >>> paths = all_paths(filtered_walk('test'))
+    >>> print('\n'.join(paths))
+    test
+    test/file1.txt
+    test/file2.txt
+    test/test2
+    test/test4
+    test/test2/file1.txt
+    test/test2/file2.txt
+    test/test2/test3
+    test/test4/file1.txt
+    test/test4/test3
 
 .. note::
   When used with :func:`min_depth` the output will be produced as multiple
