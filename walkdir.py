@@ -272,7 +272,7 @@ def dir_paths(walk_iter):
     yield top
     while dir_entry:
         dirpath = dir_entry[0]
-        if top not in dirpath:
+        if not dirpath.startswith(top):
             yield dirpath
             top = dirpath
         for subdir in dir_entry[1]:
@@ -294,7 +294,7 @@ def all_paths(walk_iter):
     yield top
     while dir_entry:
         dirpath = dir_entry[0]
-        if top not in dirpath:
+        if not dirpath.startswith(top):
             yield dirpath
             top = dirpath
         for fname in dir_entry[2]:
