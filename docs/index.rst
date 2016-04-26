@@ -43,6 +43,44 @@ Three iterators are provided for iteration over filesystem paths:
 .. autofunction:: file_paths
 
 
+.. versionchanged:: 0.4
+  The functions yield subdirs. As a result the files order has been changed
+  Lets assume the following directory tree::
+
+    >>> tree test
+    test
+    ├── file1.txt
+    ├── file2.txt
+    ├── test2
+    │   ├── file1.txt
+    │   ├── file2.txt
+    │   └── test3
+    └── test4
+        ├── file1.txt
+        └── test5
+
+
+  Then we will receive the following result::
+
+    >>> from walkdir import filtered_walk, dir_paths, all_paths, file_paths
+    >>> paths = all_paths(filtered_walk('test'))
+    >>> print('\n'.join(paths))
+    test
+    test/file1.txt
+    test/file2.txt
+    test/test2
+    test/test4
+    test/test2/file1.txt
+    test/test2/file2.txt
+    test/test2/test3
+    test/test4/file1.txt
+    test/test4/test3
+
+.. note::
+  When used with :func:`min_depth` the output will be produced as multiple
+  independent walks of each directory bigger than given *min_depth*.
+
+
 Directory Walking
 -----------------
 
@@ -86,13 +124,13 @@ of its own source tree::
     ./VERSION.txt
     ./README.txt
     >>> dirs = dir_paths(filtered_walk('.', depth=1, min_depth=1,
-    ...                  excluded_dirs=['__pycache__', '.hg']))
+    ...                  excluded_dirs=['__pycache__', '.git']))
     >>> print '\n'.join(dirs)
     ./docs
     ./dist
     >>> paths = all_paths(filtered_walk('.', depth=1,
     ...                   included_files=['*.py', '*.txt', '*.rst'],
-    ...                   excluded_dirs=['__pycache__', '.hg']))))
+    ...                   excluded_dirs=['__pycache__', '.git']))
     >>> print '\n'.join(paths)
     .
     ./setup.py
@@ -133,12 +171,12 @@ Development and Support
 -----------------------
 
 WalkDir is developed and maintained on Gitub_, with continuous
-integration services provided by `Shining Panda`_.
+integration services provided by `Travis-CI`_.
 
 Problems and suggested improvements can be posted to the `issue tracker`_.
 
 .. _Gitub: https://github.com/ncoghlan/walkdir
-.. _Shining Panda: https://jenkins.shiningpanda.com/ncoghlan-devs-projects
+.. _Travis-CI: https://travis-ci.org/ncoghlan/walkdir
 .. _issue tracker: https://github.com/ncoghlan/walkdir/issues
 
 

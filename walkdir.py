@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """walkdir - iterative tools for working with os.walk() and similar interfaces
 """
 import fnmatch
@@ -140,10 +141,28 @@ def min_depth(walk_iter, depth):
     depth of the first path produced by the underlying iterator as a
     reference point.
     
-    NOTE: Since this filter *doesn't yield* higher level directories, any
-    subsequent directory filtering that relies on updating the subdirectory
-    list will have no effect at the minimum depth. Accordingly, this filter
-    should only be applied *after* any directory filtering operations.
+    .. note:: Since this filter *doesn't yield* higher level directories, any
+      subsequent directory filtering that relies on updating the subdirectory
+      list will have no effect at the minimum depth. Accordingly, this filter
+      should only be applied *after* any directory filtering operations.
+
+    .. note:: The result of using this filter is the same as chaining
+      multiple independent :func:`os.walk` iterators using :func:`itertools.chain`.
+      Lets assume the following directory tree::
+
+        >>> tree test
+        test
+        ├── file1.txt
+        ├── file2.txt
+        ├── test2
+        │   ├── file1.txt
+        │   ├── file2.txt
+        │   └── test3
+        └── test4
+            ├── file1.txt
+            └── test5
+
+      Using *depth* of 1 will emit the exact iterator as ``itertools.chain(os.walk(test2), os.walk(test4)).``
     """
     if depth < 1:
         msg = "Minimium depth less than 1 ({!r} provided)"
@@ -265,8 +284,19 @@ def filtered_walk(top, included_files=None, included_dirs=None,
 
 def dir_paths(walk_iter):
     """Iterate over just the directory names visited by the underlying walk"""
-    for dirpath, subdirs, files in walk_iter:
-        yield dirpath
+    dir_entry = next(walk_iter, None)
+    if dir_entry is None:
+        return
+    top = dir_entry[0]
+    yield top
+    while dir_entry:
+        dirpath = dir_entry[0]
+        if not dirpath.startswith(top):
+            yield dirpath
+            top = dirpath
+        for subdir in dir_entry[1]:
+            yield os.path.join(dirpath, subdir)
+        dir_entry = next(walk_iter, None)
 
 def file_paths(walk_iter):
     """Iterate over the files in directories visited by the underlying walk"""
@@ -276,10 +306,21 @@ def file_paths(walk_iter):
 
 def all_paths(walk_iter):
     """Iterate over both files and directories visited by the underlying walk"""
-    for dirpath, subdirs, files in walk_iter:
-        yield dirpath
-        for fname in files:
+    dir_entry = next(walk_iter, None)
+    if dir_entry is None:
+        return
+    top = dir_entry[0]
+    yield top
+    while dir_entry:
+        dirpath = dir_entry[0]
+        if not dirpath.startswith(top):
+            yield dirpath
+            top = dirpath
+        for fname in dir_entry[2]:
             yield os.path.join(dirpath, fname)
+        for subdir in dir_entry[1]:
+            yield os.path.join(dirpath, subdir)
+        dir_entry = next(walk_iter, None)
 
 # Legacy API
 iter_dir_paths = dir_paths
