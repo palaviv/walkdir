@@ -44,7 +44,7 @@ Three iterators are provided for iteration over filesystem paths:
 
 
 .. versionchanged:: 0.4
-  The functions yeild subdirs. As a result the files order has benn changed
+  The functions yield subdirs. As a result the files order has been changed
   Lets assume the following directory tree::
 
     >>> tree test
@@ -78,7 +78,7 @@ Three iterators are provided for iteration over filesystem paths:
 
 .. note::
   When used with :func:`min_depth` the output will be produced as multiple
-  independent walks of each directory bigger then given *min_depth*.
+  independent walks of each directory bigger than given *min_depth*.
 
 
 Directory Walking

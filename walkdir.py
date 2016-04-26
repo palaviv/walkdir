@@ -147,7 +147,7 @@ def min_depth(walk_iter, depth):
       should only be applied *after* any directory filtering operations.
 
     .. note:: The result of using this filter is the same as chaining
-      multiple independents :func:`os.walk` iterators using :func:`itertools.chain`.
+      multiple independent :func:`os.walk` iterators using :func:`itertools.chain`.
       Lets assume the following directory tree::
 
         >>> tree test
