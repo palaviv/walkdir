@@ -242,6 +242,11 @@ symlink_expected_tree[0][2].append('file1.link')
 symlink_expected_tree[1][2].append('file1.link')
 symlink_expected_tree[5][1].append('dir1.link')
 
+symlink_expected_paths = deepcopy(expected_paths)
+symlink_expected_paths.insert(1, 'root/file1.link')
+symlink_expected_paths.insert(23, 'root/subdir1/file1.link')
+symlink_expected_paths.insert(33, 'root/subdir2/dir1.link')
+
 dir_symlink = ('root/subdir2/dir1.link', [], ['file1.txt', 'file2.txt', 'other.txt'])
 
 symlink_loop_list = [
@@ -529,6 +534,9 @@ class SymlinkTestCase(_BaseFileSystemWalkTestCase):
 
     def test_following_symlinks(self):
         self.assertWalkEqual(symlink_expected_tree + [dir_symlink], self.filtered_walk(followlinks=True))
+
+    def test_symlink_all_paths(self):
+        self.assertPathsEqual(symlink_expected_paths, all_paths(self.filtered_walk()))
 
 
 class SymlinkLoopTestCase(_BaseFileSystemWalkTestCase):
