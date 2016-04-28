@@ -6,7 +6,18 @@ language: python
 python:
   - "3.5"
 
+env:
+    matrix:
+        - TESTENV=py26
+        - TESTENV=py27
+        - TESTENV=py31
+        - TESTENV=py33
+        - TESTENV=py34
+        - TESTENV=py35
+        - TESTENV=pypy
+        - TESTENV=pypy3
+
 install:
   - pip install tox
 
-script: tox
+script: tox -e $TESTENV
