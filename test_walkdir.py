@@ -343,6 +343,8 @@ class _BaseFileSystemWalkTestCase(_BaseWalkTestCase):
         self.assertEqual(sorted(expected), sorted(dir_entry[2]))
 
 
+@unittest.skipIf(not hasattr(os, "fwalk"),
+                 "No os.fwalk")
 class _BaseFileSystemFWalkTestCase(_BaseFileSystemWalkTestCase):
 
     def walk(self, followlinks=False):
