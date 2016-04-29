@@ -168,8 +168,8 @@ def min_depth(walk_iter, depth):
         msg = "Minimium depth less than 1 ({!r} provided)"
         raise ValueError(msg.format(depth))
     sep=os.sep
-    for top, subdirs, files in walk_iter:
-        initial_depth = top.count(sep)
+    for dir_entry in walk_iter:
+        initial_depth = dir_entry[0].count(sep)
         break
     for dir_entry in walk_iter:
         dirpath = dir_entry[0]
@@ -300,9 +300,9 @@ def dir_paths(walk_iter):
 
 def file_paths(walk_iter):
     """Iterate over the files in directories visited by the underlying walk"""
-    for dirpath, subdirs, files in walk_iter:
-        for fname in files:
-            yield os.path.join(dirpath, fname)
+    for dir_entry in walk_iter:
+        for fname in dir_entry[2]:
+            yield os.path.join(dir_entry[0], fname)
 
 def all_paths(walk_iter):
     """Iterate over both files and directories visited by the underlying walk"""

@@ -46,6 +46,14 @@ class SortedWalkedDir(WalkedDir):
         return self
 
 
+class SortedFWalkedDir(WalkedDir):
+    # os.walk use os.listdir that returns files and dirs in arbitrary order.
+    # we need to sort the subdirs and files before comparison
+    def __new__(cls, dirpath, subdirs, files, dir_fd=None):
+        self = super(SortedFWalkedDir, cls).__new__(cls, dirpath, sorted(subdirs), sorted(files))
+        return self
+
+
 def named_walk():
     for dir_entry in fake_walk():
         yield WalkedDir(*dir_entry)
@@ -335,6 +343,21 @@ class _BaseFileSystemWalkTestCase(_BaseWalkTestCase):
         self.assertEqual(sorted(expected), sorted(dir_entry[2]))
 
 
+class _BaseFileSystemFWalkTestCase(_BaseFileSystemWalkTestCase):
+
+    def walk(self, followlinks=False):
+        return os.fwalk(self.root_folder, follow_symlinks=followlinks)
+
+    def filtered_walk(self, *args, **kwds):
+        return filtered_walk(os.fwalk(self.root_folder), *args, **kwds)
+
+    def assertWalkEqual(self, expected, walk_iter):
+        expected = [SortedFWalkedDir(os.path.join(self.test_folder, folder[0]), folder[1], folder[2])
+                    for folder in expected]
+        result = [SortedFWalkedDir(*folder) for folder in list(walk_iter)]
+        self.assertEqual(sorted(expected), sorted(result))
+
+
 class NoFilesystemTestCase(_BaseWalkTestCase):
 
     # Sanity check on the test data generator
@@ -411,6 +434,10 @@ class FilesystemTestCase(_BaseFileSystemWalkTestCase, NoFilesystemTestCase):
     pass
 
 
+class FilesystemFWalkTestCase(_BaseFileSystemFWalkTestCase, NoFilesystemTestCase):
+    pass
+
+
 class FilteredWalkTestCase(_BaseWalkTestCase):
     # Basically repeat all the standalone cases via the convenience API
     def test_unfiltered(self):
@@ -475,6 +502,10 @@ class FilesystemFilteredWalkTestCase(_BaseFileSystemWalkTestCase, FilteredWalkTe
     pass
 
 
+class FilesystemFilteredFWalkTestCase(_BaseFileSystemFWalkTestCase, FilteredWalkTestCase):
+    pass
+
+
 class PathIterationTestCase(_BaseWalkTestCase):
 
     def test_all_paths(self):
@@ -516,6 +547,10 @@ class NamedPathIterationTestCase(_BaseNamedTestCase, PathIterationTestCase):
 
 
 class FilesystemPathIterationTestCase(_BaseFileSystemWalkTestCase, PathIterationTestCase):
+    pass
+
+
+class FilesystemPathIterationFwalkTestCase(_BaseFileSystemFWalkTestCase, PathIterationTestCase):
     pass
 
 
