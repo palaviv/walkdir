@@ -39,16 +39,17 @@ class WalkedDir(namedtuple("WalkedDir", "dirpath subdirs files")):
 
 
 class SortedWalkedDir(WalkedDir):
-    # os.walk use os.listdir that returns files and dirs in arbitrary order.
-    # we need to sort the subdirs and files before comparison
+    # os.walk uses os.listdir or os.scandir, that return files and dirs in arbitrary order.
+    # Accordingly, we need to sort the subdirs and files before comparison
     def __new__(cls, dirpath, subdirs, files):
         self = super(SortedWalkedDir, cls).__new__(cls, dirpath, sorted(subdirs), sorted(files))
         return self
 
 
 class SortedFWalkedDir(WalkedDir):
-    # os.walk use os.listdir that returns files and dirs in arbitrary order.
-    # we need to sort the subdirs and files before comparison
+    # os.fwalk uses os.listdir or os.scandir, that return files and dirs in arbitrary order.
+    # Accordingly, we need to sort the subdirs and files before comparison
+    # We also drop the directory file descriptor from the comparison (since that varies each run)
     def __new__(cls, dirpath, subdirs, files, dir_fd=None):
         self = super(SortedFWalkedDir, cls).__new__(cls, dirpath, sorted(subdirs), sorted(files))
         return self
