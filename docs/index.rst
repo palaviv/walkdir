@@ -6,9 +6,6 @@ WalkDir
 
 .. moduleauthor:: Nick Coghlan <ncoghlan@gmail.com>
 
-.. toctree::
-   :maxdepth: 2
-
 The standard libary's :func:`os.walk` iterator provides a convenient way to
 process the contents of a filesystem directory. This module provides higher
 level tools based on the same interface that support filtering, depth
@@ -23,9 +20,10 @@ In this module, ``walk_iter`` refers to any iterable that produces
 
 The module is designed so that all purely filtering operations *preserve*
 the output of the underlying iterable. This means that named tuples, tuples
-containing more than 3 values, or objects that aren't tuples at all but are
-still defined such that ``x[0], x[1], x[2] => dirpath, subdirs, files`` can
-be filtered without being converted to ordinary 3-tuples.
+containing more than 3 values (such as those produced by :func:`os.fwalk`,
+and objects that aren't tuples at all but are still defined such that
+``x[0], x[1], x[2] => dirpath, subdirs, files`` can be filtered without being
+converted to ordinary 3-tuples.
 
 .. versionchanged:: 0.3
    Objects produced by underlying iterables are now preserved instead of
