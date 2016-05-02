@@ -38,7 +38,11 @@ def _make_include_filter(patterns):
 def include_dirs(walk_iter, *include_filters):
     """Use :func:`fnmatch.fnmatch` patterns to select directories of interest
     
-       Inclusion filters are passed directly as arguments
+    Inclusion filters are passed directly as arguments.
+
+    This filter works by modifying the subdirectory lists produced by the
+    underlying iterator, and hence requires a top-down/breadth-first
+    traversal of the directory hierarchy.
     """
     filter_subdirs = _make_include_filter(include_filters)
     for dir_entry in walk_iter:
@@ -49,7 +53,11 @@ def include_dirs(walk_iter, *include_filters):
 def include_files(walk_iter, *include_filters):
     """Use :func:`fnmatch.fnmatch` patterns to select files of interest
     
-       Inclusion filters are passed directly as arguments
+    Inclusion filters are passed directly as arguments
+
+    This filter does not modify the subdirectory lists produced by the
+    underlying iterator, and hence supports both top-down/breadth-first
+    and bottom-up/depth-first traversal of the directory hierarchy.
     """
     filter_files = _make_include_filter(include_filters)
     for dir_entry in walk_iter:
@@ -79,7 +87,11 @@ def _make_exclude_filter(patterns):
 def exclude_dirs(walk_iter, *exclude_filters):
     """Use :func:`fnmatch.fnmatch` patterns to skip irrelevant directories
     
-       Exclusion filters are passed directly as arguments
+    Exclusion filters are passed directly as arguments
+
+    This filter works by modifying the subdirectory lists produced by the
+    underlying iterator, and hence requires a top-down/breadth-first
+    traversal of the directory hierarchy.
     """
     filter_subdirs = _make_exclude_filter(exclude_filters)
     for dir_entry in walk_iter:
@@ -90,7 +102,11 @@ def exclude_dirs(walk_iter, *exclude_filters):
 def exclude_files(walk_iter, *exclude_filters):
     """Use :func:`fnmatch.fnmatch` patterns to skip irrelevant files
     
-       Exclusion filters are passed directly as arguments
+    Exclusion filters are passed directly as arguments
+
+    This filter does not modify the subdirectory lists produced by the
+    underlying iterator, and hence supports both top-down/breadth-first
+    and bottom-up/depth-first traversal of the directory hierarchy.
     """
     filter_files = _make_exclude_filter(exclude_filters)
     for dir_entry in walk_iter:
@@ -110,6 +126,10 @@ def limit_depth(walk_iter, depth):
     Path depth is calculated by counting directory separators, using the
     depth of the first path produced by the underlying iterator as a
     reference point.
+
+    This filter works by modifying the subdirectory lists produced by the
+    underlying iterator, and hence requires a top-down/breadth-first
+    traversal of the directory hierarchy.
     """
     if depth < 0:
         msg = "Depth limit less than 0 ({!r} provided)"
@@ -146,23 +166,28 @@ def min_depth(walk_iter, depth):
       list will have no effect at the minimum depth. Accordingly, this filter
       should only be applied *after* any directory filtering operations.
 
-    .. note:: The result of using this filter is the same as chaining
-      multiple independent :func:`os.walk` iterators using :func:`itertools.chain`.
-      Lets assume the following directory tree::
+    .. note:: The result of using this filter is effectively the same as
+      chaining multiple independent :func:`os.walk` iterators using
+      :func:`itertools.chain`. For example, given the following directory tree::
 
         >>> tree test
         test
         ├── file1.txt
         ├── file2.txt
         ├── test2
-        │   ├── file1.txt
-        │   ├── file2.txt
-        │   └── test3
+        │   ├── file1.txt
+        │   ├── file2.txt
+        │   └── test3
         └── test4
             ├── file1.txt
             └── test5
 
-      Using *depth* of 1 will emit the exact iterator as ``itertools.chain(os.walk(test2), os.walk(test4)).``
+      Then ``min_depth(os.walk("test"), depth=1)`` will produce the same output
+      as ``itertools.chain(os.walk("test/test2"), os.walk("test/test4")).``
+
+    This filter works by modifying the subdirectory lists produced by the
+    underlying iterator, and hence requires a top-down/breadth-first
+    traversal of the directory hierarchy.
     """
     if depth < 1:
         msg = "Minimium depth less than 1 ({!r} provided)"
@@ -182,13 +207,17 @@ def min_depth(walk_iter, depth):
 def handle_symlink_loops(walk_iter, onloop=None):
     """Handle symlink loops when following symlinks during a walk
     
-       By default, prints a warning and then skips processing
-       the directory a second time. 
+    By default, prints a warning and then skips processing
+    the directory a second time.
        
-       This can be overridden by providing the `onloop` callback, which
-       accepts the offending symlink as a parameter. Returning a true value
-       from this callback will mean that the directory is still processed,
-       otherwise it will be skipped.
+    This can be overridden by providing the `onloop` callback, which
+    accepts the offending symlink as a parameter. Returning a true value
+    from this callback will mean that the directory is still processed,
+    otherwise it will be skipped.
+
+    This filter skips processing subdirectories by modifying the subdirectory
+    lists produced by the underlying iterator, and hence requires a
+    top-down/breadth-first traversal of the directory hierarchy.
     """
     if onloop is None:
         def onloop(dirpath):
@@ -226,16 +255,22 @@ def handle_symlink_loops(walk_iter, onloop=None):
 def filtered_walk(top, included_files=None, included_dirs=None,
                        excluded_files=None, excluded_dirs=None,
                        depth=None, followlinks=False, min_depth=None):
-    """This is a wrapper around ``os.walk()``, with these additional features:
+    """This is a wrapper around ``os.walk()`` and other filesystem traversal
+       iterators, with these additional features:
+
         - *top* may be either a string (which will be passed to ``os.walk()``)
-          or any iterable that produces ``path, subdirs, files`` triples
+          or any iterable that produces sequences with ``path, subdirs, files``
+          as the first three elements in the sequence
         - allows independent glob-style filters for filenames and subdirectories
         - allows a recursion depth limit to be specified
+        - allows a minimum depth to be specified to report only subdirectory
+          contents
         - emits a message to stderr and skips the directory if a symlink loop
           is encountered when following links
 
-       Filtered walks are always top down, as the subdirectory listings must
-       be altered to provide a number of the above features.
+       Filtered walks created by passing in a string are always top down, as
+       the subdirectory listings must be altered to provide a number of the
+       above features.
 
        *include_files*, *include_dirs*, *exclude_files* and *exclude_dirs* are
        used to apply the relevant filtering steps to the walk.
@@ -249,8 +284,8 @@ def filtered_walk(top, included_files=None, included_dirs=None,
        excluded from the walk (e.g. a *min_depth* of 1 excludes *top*, but
        any subdirectories will still be processed)
 
-       *followlinks* enables symbolic loop detection and is also passed to
-       ``os.walk()`` when top is a string
+       *followlinks* enables symbolic loop detection (when set to ``True``)
+       and is also passed to ``os.walk()`` when top is a string
     """
     if isinstance(top, str):
         walk_iter = os.walk(top, followlinks=followlinks)
@@ -283,7 +318,12 @@ def filtered_walk(top, included_files=None, included_dirs=None,
 # Iterators that flatten the output into a series of paths
 
 def dir_paths(walk_iter):
-    """Iterate over just the directory names visited by the underlying walk"""
+    """Iterate over just the directory names visited by the underlying walk
+
+    This iterator expects new root directories to be emitted by the underlying
+    walk before any of their contents, and hence requires a
+    top-down/breadth-first traversal of the directory hierarchy.
+    """
     dir_entry = next(walk_iter, None)
     if dir_entry is None:
         return
@@ -305,7 +345,12 @@ def file_paths(walk_iter):
             yield os.path.join(dir_entry[0], fname)
 
 def all_paths(walk_iter):
-    """Iterate over both files and directories visited by the underlying walk"""
+    """Iterate over both files and directories visited by the underlying walk
+
+    This iterator expects new root directories to be emitted by the underlying
+    walk before any of their contents, and hence requires a
+    top-down/breadth-first traversal of the directory hierarchy.
+    """
     dir_entry = next(walk_iter, None)
     if dir_entry is None:
         return

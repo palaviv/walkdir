@@ -16,11 +16,12 @@ Walk Iterables
 --------------
 
 In this module, ``walk_iter`` refers to any iterable that produces
-``path, subdirs, files`` triples of the style produced by :func:`os.walk`.
+``path, subdirs, files`` triples sufficiently compatible with those produced
+by :func:`os.walk`.
 
 The module is designed so that all purely filtering operations *preserve*
 the output of the underlying iterable. This means that named tuples, tuples
-containing more than 3 values (such as those produced by :func:`os.fwalk`,
+containing more than 3 values (such as those produced by :func:`os.fwalk`),
 and objects that aren't tuples at all but are still defined such that
 ``x[0], x[1], x[2] => dirpath, subdirs, files`` can be filtered without being
 converted to ordinary 3-tuples.
@@ -40,27 +41,27 @@ Three iterators are provided for iteration over filesystem paths:
 
 .. autofunction:: file_paths
 
+Except when the underlying iterable switches to a new root directory, these
+functions yield subdirectory paths when visiting the parent directory, rather
+than when visiting the subdirectory.
 
-.. versionchanged:: 0.4
-  The functions yield subdirs. As a result the files order has been changed
-  Lets assume the following directory tree::
+For example, given the following directory tree::
 
     >>> tree test
     test
     ├── file1.txt
     ├── file2.txt
     ├── test2
-    │   ├── file1.txt
-    │   ├── file2.txt
-    │   └── test3
+    │   ├── file1.txt
+    │   ├── file2.txt
+    │   └── test3
     └── test4
         ├── file1.txt
         └── test5
 
+``all_paths`` will produce::
 
-  Then we will receive the following result::
-
-    >>> from walkdir import filtered_walk, dir_paths, all_paths, file_paths
+    >>> from walkdir import filtered_walk, all_paths
     >>> paths = all_paths(filtered_walk('test'))
     >>> print('\n'.join(paths))
     test
@@ -72,11 +73,43 @@ Three iterators are provided for iteration over filesystem paths:
     test/test2/file2.txt
     test/test2/test3
     test/test4/file1.txt
-    test/test4/test3
+    test/test4/test5
+
+``dir_paths`` will produce::
+
+    >>> from walkdir import filtered_walk, dir_paths
+    >>> paths = dir_paths(filtered_walk('test'))
+    >>> print('\n'.join(paths))
+    test
+    test/test2
+    test/test4
+    test/test2/test3
+    test/test4/test5
+
+And ``file_paths`` will produce::
+
+    >>> from walkdir import filtered_walk, file_paths
+    >>> paths = file_paths(filtered_walk('test'))
+    >>> print('\n'.join(paths))
+    test/file1.txt
+    test/file2.txt
+    test/test2/file1.txt
+    test/test2/file2.txt
+    test/test4/file1.txt
+
 
 .. note::
   When used with :func:`min_depth` the output will be produced as multiple
   independent walks of each directory bigger than given *min_depth*.
+
+.. versionchanged:: 0.4
+   Subdirectories are now emitted when visiting the parent directory, rather
+   than when visiting the subdirectory itself. This means that subdirectories
+   may now be emitted without being visited (e.g. subdirectories of directories
+   visited by a depth-limited walk, symlinks to subdirectories when not
+   following links), and all subdirectories of a given parent directory are
+   emitted as a contiguous block, rather than being interleaved with their
+   respective file listings.
 
 
 Directory Walking
@@ -107,7 +140,7 @@ an :mod:`itertools` style iterator pipeline model:
 Examples
 ========
 
-Here are some simple examples of the module being used to explore the contents
+Here are some examples of the module being used to explore the contents
 of its own source tree::
 
     >>> from walkdir import filtered_walk, dir_paths, all_paths, file_paths
