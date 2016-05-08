@@ -132,7 +132,7 @@ def limit_depth(walk_iter, depth):
     traversal of the directory hierarchy.
     """
     if depth < 0:
-        msg = "Depth limit less than 0 ({!r} provided)"
+        msg = "Depth limit less than 0 ({0!r} provided)"
         raise ValueError(msg.format(depth))
     sep=os.sep
     for dir_entry in walk_iter:
@@ -190,7 +190,7 @@ def min_depth(walk_iter, depth):
     traversal of the directory hierarchy.
     """
     if depth < 1:
-        msg = "Minimium depth less than 1 ({!r} provided)"
+        msg = "Minimium depth less than 1 ({0!r} provided)"
         raise ValueError(msg.format(depth))
     sep=os.sep
     for dir_entry in walk_iter:
